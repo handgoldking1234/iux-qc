@@ -977,7 +977,8 @@ function bindViewer(v,isH){
       updateMag(e,v);return}
     if(drag.type==='rotate'){cv.style.cursor=rotCursor(v,x,y);let d=(Math.atan2(y-drag.cy,x-drag.cx)-drag.a0)*180/Math.PI;d=e.shiftKey?Math.round(d):Math.round(d*10)/10;
       drag.mx=x;drag.my=y;const ed=clone(drag.snap);setTilt(ed,drag.snap.tilt+d);S.edits=ed;
-      if(drag.pend)S.pending=drag.pend;cancelAnimationFrame(drag.raf);drag.raf=requestAnimationFrame(()=>{renderRight(true);syncUI()});return}
+      // 크롭 중 회전: 크롭 틀도 이미지와 함께 돌아가며 이동 (같은 내용을 계속 감쌈)
+      if(drag.pend){const tmp=clone(drag.snap);tmp.crop=clone(drag.pend);setTilt(tmp,drag.snap.tilt+d);S.pending=tmp.crop}cancelAnimationFrame(drag.raf);drag.raf=requestAnimationFrame(()=>{renderRight(true);syncUI()});return}
     if(drag.type==='sel'||drag.type==='selmove'){const[sx,sy]=v.toSrc(x,y),[px,py]=srcToStage(sx,sy),st=stageC.cv,W=st.width,H=st.height;
       if(drag.type==='selmove'){S.sel={...drag.s0,x:drag.s0.x+(px-drag.p0[0])/W,y:drag.s0.y+(py-drag.p0[1])/H}}
       else{let dx=px-drag.p0[0],dy=py-drag.p0[1];if(e.shiftKey){const m=Math.max(Math.abs(dx),Math.abs(dy));dx=Math.sign(dx||1)*m;dy=Math.sign(dy||1)*m}
@@ -1046,7 +1047,9 @@ function retarget(e,oldT){const newT=e.rot+e.tilt,d=newT-oldT;if(Math.abs(d)<1e-
   e.erases=e.erases.map(tR);e.locals=(e.locals||[]).map(l=>({...l,sel:tS(l.sel)}));if(S.sel&&e===S.edits)S.sel=tS(S.sel);
   e.paints=(e.paints||[]).map(p=>{const n={...p,pts:(p.pts||[]).map(t=>tp(t[0],t[1]))};if(p.sel)n.sel=tS(p.sel);if(p.dx!=null){n.dx=p.dx*cs-p.dy*sn;n.dy=p.dx*sn+p.dy*cs}return n});
   if(e.crop){if(isQ){let c=e.crop;for(let i=0;i<((q%4)+4)%4;i++)c=rot90(c);e.crop=c}
-    else{const[cx,cy]=tp(e.crop.x+e.crop.w/2,e.crop.y+e.crop.h/2),w=e.crop.w*W0/W1,h=e.crop.h*H0/H1;e.crop={x:cx-w/2,y:cy-h/2,w,h}}}}
+    else{const[cx,cy]=tp(e.crop.x+e.crop.w/2,e.crop.y+e.crop.h/2),w=e.crop.w*W0/W1,h=e.crop.h*H0/H1;e.crop={x:cx-w/2,y:cy-h/2,w,h}}}
+  // 크롭 중에 키보드(, . S D W A)로 돌려도 크롭 틀이 함께 따라감
+  if(e===S.edits&&S.tool==='crop'&&S.pending){const t={rot:e.rot,tilt:e.tilt,crop:S.pending,erases:[],paints:[],locals:[]};retarget(t,oldT);S.pending=t.crop}}
 function setRot(deg){if(!S.cur)return;commit(e=>{const o=e.rot+e.tilt;e.rot=deg;retarget(e,o)},false)}
 function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100)/100;retarget(e,o)}
 function addTilt(d){if(!S.cur)return;commit(e=>setTilt(e,e.tilt+d))}
