@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScanQC 관리자</title>
+<link rel="icon" href="app.ico">
+<style>
+:root{--bg:#000;--panel:#121212;--card:#181818;--elev:#1f1f1f;--elev2:#2a2a2a;--line:#2e2e2e;--text:#fff;--sub:#b3b3b3;--mute:#7c7c7c;
+  --accent:#2F6BFF;--accent2:#4A80FF;--accentDim:rgba(47,107,255,.18);--accentText:#7FA5FF;--orange:#FFA42B;--red:#F15E6C;--info:#22B8CF;--green:#3BD671;--pill:9999px;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+input,select{font:inherit;color:inherit}
+a{color:var(--accentText)}
+[hidden]{display:none!important}
+.i{display:block;flex:none}
+.wrap{display:grid;grid-template-columns:232px 1fr;gap:8px;padding:8px;min-height:100vh}
+.nav{background:var(--panel);border-radius:var(--r);padding:16px 10px;display:flex;flex-direction:column;gap:2px;position:sticky;top:8px;height:calc(100vh - 16px)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;padding:0 6px 16px}
+.logo-mark{width:32px;height:32px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.logo small{display:block;color:var(--sub);font-weight:500;font-size:11px}
+.nav button{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:6px;color:var(--sub);font-weight:600;text-align:left;transition:.15s}
+.nav button:hover{color:var(--text)}.nav button.on{background:var(--elev2);color:var(--text)}
+.nav .sp{flex:1}
+.nav .me{display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid var(--line);margin-top:8px}
+.nav .me .av{width:30px;height:30px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.nav .me div{flex:1;min-width:0}.nav .me b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav .me small{color:var(--sub);font-size:11px}
+main{background:var(--panel);border-radius:var(--r);padding:24px 28px 40px;min-width:0;background-image:linear-gradient(180deg,#1b2540 0,#121212 260px)}
+.ph{display:flex;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.ph h1{font-size:28px;letter-spacing:-.5px;line-height:1.1}.ph p{color:var(--sub);font-size:13px;margin-top:6px}
+.ph .sp{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:34px;padding:0 16px;border-radius:var(--pill);font-weight:700;font-size:13px;white-space:nowrap;transition:transform .1s,background .15s}
+.btn-blue{background:var(--accent);color:#fff}.btn-blue:hover:not(:disabled){background:var(--accent2);transform:scale(1.03)}
+.btn-dark{background:var(--elev2)}.btn-dark:hover:not(:disabled){background:#353535}
+.btn-ghost{border:1px solid #6a6a6a}.btn-ghost:hover:not(:disabled){border-color:#fff}
+.btn-red{background:rgba(241,94,108,.16);color:var(--red)}
+.btn-sm{height:28px;padding:0 12px;font-size:12px}
+.inp,select.inp{background:var(--elev2);border:1px solid transparent;border-radius:6px;height:34px;padding:0 10px;outline:none;font-size:13px;min-width:0}
+.inp:focus{border-color:#555;background:#333}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:16px}
+.kpi{background:var(--card);border-radius:var(--r);padding:14px 16px}
+.kpi small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px;font-weight:600}
+.kpi b{display:block;font-size:26px;letter-spacing:-.5px;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi em{font-style:normal;color:var(--mute);font-size:12px;margin-left:4px;font-weight:500}
+.card{background:var(--card);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;min-width:0}
+.card h2{font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.card h2 .sp{flex:1}.card h2 small{color:var(--mute);font-weight:500;font-size:12px}
+.two{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+@media(max-width:1200px){.two{grid-template-columns:1fr}}
+.bar{height:8px;background:var(--elev2);border-radius:8px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--sub);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mute);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #222;vertical-align:middle}
+tr:hover td{background:#1d1d1d}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td .sub{color:var(--mute);font-size:12px}
+.tw{overflow:auto;max-height:520px}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--pill);font-size:11px;font-weight:700;background:var(--elev2);color:var(--sub);white-space:nowrap}
+.tag.blue{background:var(--accentDim);color:var(--accentText)}.tag.orange{background:rgba(255,164,43,.14);color:var(--orange)}.tag.red{background:rgba(241,94,108,.16);color:var(--red)}.tag.green{background:rgba(59,214,113,.14);color:var(--green)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}.field label{font-size:12px;color:var(--sub);font-weight:600}
+.empty{color:var(--mute);font-size:13px;padding:20px 0;text-align:center}
+.chart{display:flex;align-items:flex-end;gap:3px;height:150px;padding-top:8px}
+.chart .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;position:relative;min-width:4px;height:100%}
+.chart .c i{display:block;border-radius:2px 2px 0 0}
+.chart .c:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#000;border:1px solid #333;padding:4px 8px;border-radius:6px;font-size:11px;white-space:pre;z-index:3;color:#fff}
+.axis{display:flex;justify-content:space-between;color:var(--mute);font-size:11px;margin-top:6px}
+.feed{display:flex;flex-direction:column;max-height:420px;overflow:auto}
+.feed div{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #222;font-size:13px}
+.feed time{color:var(--mute);font-size:12px;flex:none;width:44px}
+.feed b{font-weight:600}
+.prog{margin-top:12px}.prog .bar{height:10px}.prog small{display:block;color:var(--sub);font-size:12px;margin-top:6px}
+.login{max-width:380px;margin:12vh auto;background:var(--card);border-radius:12px;padding:28px}
+.login h1{font-size:22px;margin-bottom:6px}.login p{color:var(--sub);font-size:13px;margin-bottom:18px}
+.login .field{margin-bottom:12px}.login .msg{color:var(--red);font-size:12px;min-height:18px;margin-bottom:8px}
+.toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:50}
+.toast{background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.toast.err{background:var(--red)}.toast.warn{background:#3a2a10;color:var(--orange)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#181818;border-left:1px solid var(--line);z-index:40;display:flex;flex-direction:column;box-shadow:-20px 0 40px rgba(0,0,0,.5)}
+.drawer header{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--line)}.drawer header h3{flex:1;font-size:15px}
+.drawer .body{overflow:auto;padding:12px 20px 30px}
+.note{font-size:12px;color:var(--mute);line-height:1.6}
+.sw{width:40px;height:22px;border-radius:22px;background:#535353;position:relative;transition:.15s;flex:none}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
+.sw.on{background:var(--accent)}.sw.on::after{left:21px}
+.drop{border:1px dashed #555;border-radius:8px;padding:14px;display:flex;align-items:center;gap:12px}
+.drop b{display:block}.drop small{color:var(--mute);font-size:12px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<div id="gate" class="login" hidden>
+  <h1>ScanQC 관리자</h1><p id="gateMsg">관리자 계정으로 로그인하세요.</p>
+  <div class="field"><label>아이디</label><input class="inp" id="lgId" autocomplete="username"></div>
+  <div class="field"><label>비밀번호</label><input class="inp" id="lgPw" type="password" autocomplete="current-password"></div>
+  <div class="msg" id="lgMsg"></div>
+  <button class="btn btn-blue" id="lgGo" style="width:100%">로그인</button>
+  <p class="note" style="margin-top:14px">처음 가입한 계정이 관리자가 돼요. 계정이 없으면 <a href="index.html">검수 화면</a>의 팀 작업 → 가입 요청에서 만들어 주세요.</p>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <nav class="nav">
+    <div class="logo"><span class="logo-mark" data-i="scan-line"></span><div>ScanQC<small>관리자</small></div></div>
+    <button data-tab="dash" class="on"><span data-i="layout-dashboard"></span>현황판</button>
+    <button data-tab="usage"><span data-i="bar-chart"></span>사용 통계</button>
+    <button data-tab="proj"><span data-i="layers"></span>작업 묶음</button>
+    <button data-tab="assign"><span data-i="user-check"></span>배정</button>
+    <button data-tab="people"><span data-i="users"></span>사람</button>
+    <div class="sp"></div>
+    <a class="btn btn-dark" href="index.html" target="_blank" style="margin:0 4px 8px"><span data-i="scan-line" data-s="15"></span>검수 화면 열기</a>
+    <div class="me"><span class="av" id="meAv">?</span><div><b id="meName">—</b><small>관리자</small></div><button class="btn btn-dark btn-sm" id="btnOut" title="로그아웃" data-i="log-out" data-s="14"></button></div>
+  </nav>
+
+  <main>
+    <!-- 현황판 -->
+    <section data-sec="dash">
+      <div class="ph"><div><h1>현황판</h1><p>작업 묶음별 진행 상황 · 15초마다 새로 고침</p></div><div class="sp"></div>
+        <select class="inp" id="dProj" style="min-width:220px"></select><button class="btn btn-dark" id="dRefresh" data-i="refresh-cw" data-s="15">새로 고침</button></div>
+      <div class="grid kpis" id="dKpi"></div>
+      <div class="card"><h2>진행률 <span class="sp"></span><small id="dPct"></small></h2><div class="bar" id="dBar"></div><div class="legend" id="dLegend"></div></div>
+      <div class="grid two">
+        <div class="card"><h2><span data-i="users" data-s="16"></span>작업자별 <span class="sp"></span><small>배정 · 처리 · 오늘</small></h2><div class="tw"><table id="dPeople"></table></div></div>
+        <div>
+          <div class="card"><h2><span data-i="lock" data-s="16"></span>지금 작업 중</h2><div id="dLocked"></div></div>
+          <div class="card"><h2><span data-i="history" data-s="16"></span>최근 활동</h2><div class="feed" id="dFeed"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 사용 통계 -->
+    <section data-sec="usage" hidden>
+      <div class="ph"><div><h1>사용 통계</h1><p>로그인하지 않은 사용자까지 모두 · 어떤 폴더(파일)로 열었고 몇 장을 처리했는지</p></div><div class="sp"></div>
+        <select class="inp" id="uDays"><option value="1">오늘</option><option value="7">최근 7일</option><option value="30" selected>최근 30일</option><option value="90">최근 90일</option></select>
+        <button class="btn btn-dark" id="uRefresh" data-i="refresh-cw" data-s="15">새로 고침</button></div>
+      <div class="grid kpis" id="uKpi"></div>
+      <div class="card"><h2><span data-i="bar-chart" data-s="16"></span>일별 사용 <span class="sp"></span><span class="legend" style="margin:0"><span><i style="background:#7c7c7c"></i>익명 세션</span><span><i style="background:var(--accent)"></i>로그인 세션</span><span><i style="background:var(--orange)"></i>수정 저장</span></span></h2>
+        <div class="chart" id="uChart"></div><div class="axis" id="uAxis"></div></div>
+      <div class="card"><h2><span data-i="folder" data-s="16"></span>폴더별 <span class="sp"></span><small>보정본 폴더 이름 기준 · 이미지는 수집하지 않음</small></h2><div class="tw"><table id="uFolders"></table></div></div>
+      <div class="card"><h2><span data-i="history" data-s="16"></span>사용 기록 <span class="sp"></span>
+        <select class="inp" id="uWho" style="height:28px"><option value="all">모두</option><option value="anon">익명만</option><option value="member">로그인만</option></select></h2>
+        <div class="tw"><table id="uSessions"></table></div><p class="note" style="margin-top:8px">행을 누르면 그 세션에서 연 파일과 처리 내역을 볼 수 있어요. 익명 사용자는 브라우저마다 다른 번호(#)로 구분돼요.</p></div>
+    </section>
+
+    <!-- 작업 묶음 -->
+    <section data-sec="proj" hidden>
+      <div class="ph"><div><h1>작업 묶음</h1><p>원본(과 기존 보정본)을 올려 팀이 함께 검수할 묶음을 만들어요</p></div></div>
+      <div class="card"><h2><span data-i="plus" data-s="16"></span>새 묶음</h2>
+        <div class="row"><input class="inp" id="pName" placeholder="묶음 이름 · 예) 0406 · 403027" style="flex:1;min-width:220px"><input class="inp" id="pNote" placeholder="메모 (선택)" style="flex:1;min-width:160px"><button class="btn btn-blue" id="pCreate" data-i="plus" data-s="15">만들기</button></div></div>
+      <div class="card"><h2><span data-i="layers" data-s="16"></span>묶음 목록</h2><div class="tw"><table id="pList"></table></div></div>
+      <div class="card" id="pDetail" hidden>
+        <h2><span data-i="folder-open" data-s="16"></span><span id="pdName"></span><span class="sp"></span><button class="btn btn-dark btn-sm" id="pdClose" data-i="x" data-s="14"></button></h2>
+        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+          <div class="drop"><span data-i="upload" data-s="22"></span><div style="flex:1"><b>원본 폴더 올리기</b><small>이미 올린 같은 파일(이름·크기)은 건너뜀</small></div><button class="btn btn-blue btn-sm" id="upOrig">폴더 선택</button></div>
+          <div class="drop"><span data-i="upload" data-s="22"></span><div style="flex:1"><b>기존 보정본(HP) 올리기 <small>(선택)</small></b><small>없으면 원본에서 자동 보정해 새로 만들어요</small></div><button class="btn btn-dark btn-sm" id="upHp">폴더 선택</button></div>
+          <div class="drop"><span data-i="download" data-s="22"></span><div style="flex:1"><b>보정본 내려받기</b><small><label><input type="checkbox" id="exDone" checked> 검수 끝난 것만</label></small></div><button class="btn btn-dark btn-sm" id="exHp">저장할 폴더 선택</button></div>
+        </div>
+        <div class="prog" id="upProg" hidden><div class="bar"><i id="upBar" style="width:0;background:var(--accent)"></i></div><small id="upTxt"></small></div>
+        <h2 style="margin-top:18px"><span data-i="settings" data-s="16"></span>이 묶음의 자동 보정 기본값</h2>
+        <div class="row">
+          <div class="field"><label>자동 크롭 방식</label><select class="inp" id="pcMode"><option value="paper">용지 경계</option><option value="balance">용지 + 좌우 여백 균등</option><option value="content">내용 + 여백</option></select></div>
+          <div class="field"><label>여백 mm (내용+여백)</label><input class="inp" id="pcMargin" type="number" min="0" max="50" style="width:110px"></div>
+          <div class="field"><label>기울기 경고 °</label><input class="inp" id="pcSkew" type="number" step="0.05" min="0.05" style="width:110px"></div>
+          <div class="field"><label>덮어쓰기 전 백업</label><select class="inp" id="pcBackup"><option value="1">켜기</option><option value="0">끄기</option></select></div>
+          <div class="field"><label>&nbsp;</label><button class="btn btn-blue" id="pcSave">저장</button></div>
+        </div>
+        <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-dark btn-sm" id="pdLog" data-i="download" data-s="14">작업 기록 CSV</button><button class="btn btn-dark btn-sm" id="pdArchive" data-i="archive" data-s="14">보관(목록에서 숨김)</button><button class="btn btn-red btn-sm" id="pdDelete" data-i="trash" data-s="14">묶음 삭제</button></div>
+      </div>
+    </section>
+
+    <!-- 배정 -->
+    <section data-sec="assign" hidden>
+      <div class="ph"><div><h1>배정</h1><p>배정하지 않은 파일은 누구나, 배정한 파일은 그 사람만 볼 수 있어요</p></div><div class="sp"></div><select class="inp" id="aProj" style="min-width:220px"></select></div>
+      <div class="grid two">
+        <div class="card"><h2><span data-i="users" data-s="16"></span>작업자 <span class="sp"></span><small id="aSum"></small></h2><div class="tw"><table id="aPeople"></table></div></div>
+        <div>
+          <div class="card"><h2><span data-i="split" data-s="16"></span>고르게 나누기</h2>
+            <p class="note" style="margin-bottom:10px">왼쪽에서 체크한 사람에게 파일을 순서대로 끊어서 나눠 줘요.</p>
+            <label class="row note" style="margin-bottom:6px"><input type="checkbox" id="aOnlyUn" checked> 아직 배정 안 된 파일만</label>
+            <label class="row note" style="margin-bottom:12px"><input type="checkbox" id="aOnlyTodo" checked> 미검수 파일만</label>
+            <button class="btn btn-blue" id="aEven" data-i="split" data-s="15">나누기</button></div>
+          <div class="card"><h2><span data-i="list-ordered" data-s="16"></span>번호 범위로</h2>
+            <div class="row"><input class="inp" id="aFrom" type="number" min="1" placeholder="부터 #" style="width:100px"><input class="inp" id="aTo" type="number" min="1" placeholder="까지 #" style="width:100px"><select class="inp" id="aWho" style="flex:1;min-width:120px"></select></div>
+            <div class="row" style="margin-top:10px"><button class="btn btn-blue btn-sm" id="aRange">배정</button><button class="btn btn-dark btn-sm" id="aClear">배정 해제</button></div></div>
+          <div class="card"><h2><span data-i="lock" data-s="16"></span>잠금</h2><p class="note" style="margin-bottom:10px">창을 닫으면 90초 뒤 자동으로 풀려요. 바로 풀어야 할 때만 쓰세요.</p><button class="btn btn-dark btn-sm" id="aUnlock">이 묶음 잠금 모두 풀기</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 사람 -->
+    <section data-sec="people" hidden>
+      <div class="ph"><div><h1>사람</h1><p>가입 요청 승인 · 관리자 지정. 가입은 검수 화면 → 팀 작업 → 가입 요청에서 해요</p></div></div>
+      <div class="card"><div class="tw"><table id="mList"></table></div></div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer" id="drawer" hidden><header><h3 id="drTitle"></h3><button class="btn btn-dark btn-sm" id="drClose" data-i="x" data-s="14"></button></header><div class="body" id="drBody"></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script src="config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="js/codec.js"></script>
+<script src="js/engine.js"></script>
+<script>
+'use strict';
+const ICONS={
+'scan-line':'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+'layout-dashboard':'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+'bar-chart':'<line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/>',
+'layers':'<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+'user-check':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
+'users':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+'log-out':'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+'refresh-cw':'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+'lock':'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+'history':'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+'folder':'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+'folder-open':'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
+'x':'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+'upload':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+'download':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+'settings':'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+'archive':'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+'trash':'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+'split':'<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
+'list-ordered':'<path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/>',
+'monitor':'<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+'eye':'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+'save':'<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+'pencil':'<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
+'sparkles':'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+'copy':'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+'files':'<path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/>',
+'triangle-alert':'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+'user-x':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/>',
+'check':'<path d="M20 6 9 17l-5-5"/>'
+};
+function ic(n,s=18){return `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`}
+function hydrate(r=document){r.querySelectorAll('[data-i]').forEach(el=>{el.insertAdjacentHTML('afterbegin',ic(el.dataset.i,+el.dataset.s||18));el.removeAttribute('data-i')})}
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=n=>(+n||0).toLocaleString('ko-KR');
+function toast(m,t='ok',ms=2600){const d=document.createElement('div');d.className='toast '+t;d.textContent=m;$('#toasts').appendChild(d);setTimeout(()=>d.remove(),ms)}
+function ago(t){if(!t)return'—';const s=(Date.now()-new Date(t))/1000;if(s<60)return'방금';if(s<3600)return Math.floor(s/60)+'분 전';if(s<86400)return Math.floor(s/3600)+'시간 전';return Math.floor(s/86400)+'일 전'}
+function hm(t){const d=new Date(t);return d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})}
+function dt(t){const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${hm(t)}`}
+const C=Engine.Cloud;
+const ACT={save:'저장',save_auto:'자동 보정 저장',copy_original:'원본 그대로',confirm:'확인',status:'상태 변경',restore:'백업 복원'};
+const ST={'':'미검수',auto:'자동 보정',ok:'확인',edited:'수정',copied:'원본복사',skipped:'건너뜀'};
+const STC={auto:'#3BD671',ok:'#22B8CF',edited:'#FFA42B',copied:'#7FA5FF'};
+let PROJ=[],PEOPLE=[],cur={tab:'dash'},dashT=null;
+
+/* ---------------------------------------------------------------- 시작 */
+(async function boot(){
+  hydrate();
+  if(!C.init()){document.body.innerHTML='<div class="login"><h1>Supabase 연결 필요</h1><p>config.js 에 Supabase 주소와 anon 키를 넣으면 관리자 페이지를 쓸 수 있어요. 자세한 방법은 README.md 를 보세요.</p><a class="btn btn-blue" href="index.html">검수 화면으로</a></div>';return}
+  await C.session().catch(()=>{});
+  if(!C.admin){showGate(C.user?'관리자 권한이 있는 계정으로 로그인하세요.':'관리자 계정으로 로그인하세요.');return}
+  start()})();
+function showGate(msg){$('#gate').hidden=false;$('#app').hidden=true;$('#gateMsg').textContent=msg}
+async function doLogin(){const id=$('#lgId').value.trim(),pw=$('#lgPw').value;$('#lgMsg').textContent='';
+  try{await C.signIn(id,pw);if(!C.admin){$('#lgMsg').textContent='관리자 계정이 아니에요';await C.signOut();return}$('#gate').hidden=true;start()}catch(e){$('#lgMsg').textContent=e.message}}
+$('#lgGo').onclick=doLogin;['#lgId','#lgPw'].forEach(s=>$(s).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()}));
+$('#btnOut').onclick=async()=>{await C.signOut();location.reload()};
+async function start(){
+  $('#app').hidden=false;const p=C.profile;$('#meName').textContent=p.name||p.login;$('#meAv').textContent=(p.name||p.login||'?').slice(0,1).toUpperCase();
+  await loadBase();tab(location.hash.slice(1)||'dash')}
+async function loadBase(){
+  const [{data:ps},{data:pp}]=await Promise.all([C.sb.from('projects').select('*').order('created_at',{ascending:false}),C.sb.from('profiles').select('*').order('created_at')]);
+  PROJ=ps||[];PEOPLE=pp||[];
+  const opts=PROJ.filter(x=>!x.archived).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')||'<option value="">작업 묶음 없음</option>';
+  for(const s of['#dProj','#aProj']){const v=$(s).value;$(s).innerHTML=opts;if(v&&PROJ.some(x=>x.id===v))$(s).value=v}}
+function tab(t){if(!document.querySelector(`[data-sec="${t}"]`))t='dash';cur.tab=t;history.replaceState(null,'','#'+t);
+  $$('.nav [data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$$('[data-sec]').forEach(s=>s.hidden=s.dataset.sec!==t);
+  clearInterval(dashT);
+  if(t==='dash'){loadDash();dashT=setInterval(()=>{if(!document.hidden)loadDash()},15000)}
+  if(t==='usage')loadUsage();if(t==='proj')loadProjects();if(t==='assign')loadAssign();if(t==='people')loadPeople()}
+$$('.nav [data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+
+/* ---------------------------------------------------------------- 현황판 */
+function kpi(icon,label,val,extra=''){return`<div class="kpi"><small>${ic(icon,14)}${label}</small><b>${val}${extra?`<em>${extra}</em>`:''}</b></div>`}
+async function loadDash(){const pid=$('#dProj').value;if(!pid){$('#dKpi').innerHTML='<div class="empty" style="grid-column:1/-1">작업 묶음을 먼저 만드세요 (작업 묶음 탭)</div>';return}
+  let d;try{d=await C.rpc('project_dashboard',{p_project:pid})}catch(e){toast(e.message,'err');return}
+  const s=d.status||{},tot=d.total||0,done=tot-(s['']||0)-(s.skipped||0),q=d.qc||{};
+  $('#dKpi').innerHTML=kpi('files','전체 파일',num(tot))+kpi('check','검수 완료',num(done),tot?Math.round(done/tot*100)+'%':'')+kpi('sparkles','자동 보정',num(s.auto))+kpi('pencil','수정',num(s.edited))
+    +kpi('copy','원본 복사',num(s.copied))+kpi('eye','확인',num(s.ok))+kpi('triangle-alert','경고 · 오류',num((q.warn||0)+(q.error||0)),q.error?`오류 ${q.error}`:'')+kpi('user-x','미배정',num(d.unassigned))+kpi('save','임시 저장',num(d.drafts),'창 닫힘');
+  $('#dPct').textContent=tot?`${num(done)} / ${num(tot)} (${Math.round(done/tot*100)}%)`:'';
+  $('#dBar').innerHTML=['auto','edited','copied','ok'].map(k=>`<i style="width:${tot?(s[k]||0)/tot*100:0}%;background:${STC[k]}" title="${ST[k]} ${s[k]||0}"></i>`).join('');
+  $('#dLegend').innerHTML=['auto','edited','copied','ok'].map(k=>`<span><i style="background:${STC[k]}"></i>${ST[k]} ${num(s[k])}</span>`).join('')+`<span><i style="background:#3a3a3a"></i>미검수 ${num(s[''])}</span>`;
+  const ppl=(d.people||[]).filter(p=>p.assigned||p.done||p.last_at);
+  $('#dPeople').innerHTML=`<tr><th>이름</th><th class="n">배정</th><th>배정 진행</th><th class="n">처리</th><th class="n">자동</th><th class="n">수정</th><th class="n">원본복사</th><th class="n">오늘</th><th>마지막 활동</th></tr>`+
+    (ppl.length?ppl.map(p=>{const pct=p.assigned?Math.round(p.assigned_done/p.assigned*100):0;return`<tr><td><b>${esc(p.name)}</b><div class="sub">${esc(p.login)}</div></td><td class="n">${num(p.assigned)}</td>
+      <td style="min-width:110px">${p.assigned?`<div class="bar"><i style="width:${pct}%;background:var(--accent)"></i></div><div class="sub">${pct}%</div>`:'<span class="sub">—</span>'}</td>
+      <td class="n"><b>${num(p.done)}</b></td><td class="n">${num(p.auto)}</td><td class="n">${num(p.edited)}</td><td class="n">${num(p.copied)}</td><td class="n">${num(p.today)}</td><td class="sub">${ago(p.last_at)}</td></tr>`}).join(''):'<tr><td colspan="9" class="empty">아직 활동이 없어요</td></tr>');
+  $('#dLocked').innerHTML=(d.locked||[]).length?d.locked.map(l=>`<div class="row" style="padding:6px 0;border-bottom:1px solid #222"><span class="tag blue">${esc(l.by)}</span><span style="flex:1">${esc(l.name)}</span><span class="sub" style="color:var(--mute);font-size:12px">${ago(l.since)}</span></div>`).join(''):'<div class="empty">지금 작업 중인 사람이 없어요</div>';
+  $('#dFeed').innerHTML=(d.recent||[]).length?d.recent.map(r=>{const st=r.detail&&r.detail.status;return`<div><time>${hm(r.at)}</time><span><b>${esc(r.who||'—')}</b> · ${esc(r.file||'')} <span class="tag ${st==='edited'?'orange':st==='auto'?'green':''}">${ACT[r.action]||esc(r.action)}${st&&r.action!=='confirm'&&ST[st]&&r.action!=='save_auto'?' · '+ST[st]:''}</span></span></div>`}).join(''):'<div class="empty">기록이 없어요</div>'}
+$('#dProj').onchange=loadDash;$('#dRefresh').onclick=loadDash;
+
+/* ---------------------------------------------------------------- 사용 통계 (익명 포함) */
+let USAGE=null;
+async function loadUsage(){let u;try{u=USAGE=await C.rpc('usage_summary',{p_days:+$('#uDays').value})}catch(e){toast(e.message,'err');return}
+  const t=u.totals||{};
+  $('#uKpi').innerHTML=kpi('monitor','사용 세션',num(t.sessions),`브라우저 ${num(t.browsers)}`)+kpi('users','익명 세션',num(t.anon_sessions),`브라우저 ${num(t.anon_browsers)}`)+kpi('user-check','로그인 세션',num(t.member_sessions))
+    +kpi('eye','본 파일',num(t.viewed))+kpi('save','저장',num(t.saved))+kpi('pencil','수정(변경)',num(t.edited))+kpi('sparkles','자동 보정',num(t.auto))+kpi('copy','원본 복사',num(t.copied))+kpi('check','확인',num(t.ok));
+  const days=u.daily||[],mx=Math.max(1,...days.map(d=>Math.max(d.anon+d.member,d.edited)));
+  $('#uChart').innerHTML=days.map(d=>`<div class="c" data-t="${d.day}\n익명 ${d.anon} · 로그인 ${d.member}\n저장 ${d.saved} · 수정 ${d.edited}"><i style="height:${d.member/mx*100}%;background:var(--accent)"></i><i style="height:${d.anon/mx*100}%;background:#7c7c7c"></i><i style="height:${Math.max(0,d.edited/mx*100)}%;background:var(--orange);opacity:.85;margin-top:2px"></i></div>`).join('');
+  $('#uAxis').innerHTML=days.length?`<span>${days[0].day}</span><span>${days[days.length-1].day}</span>`:'';
+  const fs=u.folders||[];
+  $('#uFolders').innerHTML=`<tr><th>폴더 (보정본)</th><th class="n">세션</th><th class="n">브라우저</th><th class="n">파일 수</th><th class="n">본 파일</th><th class="n">저장</th><th class="n">수정</th><th>마지막</th></tr>`+
+    (fs.length?fs.map(f=>`<tr><td><b>${esc(f.folder)}</b></td><td class="n">${num(f.sessions)}</td><td class="n">${num(f.browsers)}</td><td class="n">${num(f.files)}</td><td class="n">${num(f.viewed)}</td><td class="n">${num(f.saved)}</td><td class="n">${num(f.edited)}</td><td class="sub">${ago(f.last_at)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">기록이 없어요</td></tr>');
+  renderSessions()}
+function renderSessions(){const w=$('#uWho').value,ss=((USAGE&&USAGE.sessions)||[]).filter(s=>w==='all'||(w==='anon'?!s.who:!!s.who));
+  $('#uSessions').innerHTML=`<tr><th>시작</th><th>사용자</th><th>방식</th><th>폴더 · 묶음</th><th class="n">파일</th><th class="n">본</th><th class="n">저장</th><th class="n">자동</th><th class="n">수정</th><th class="n">원본복사</th><th class="n">확인</th><th>브라우저</th></tr>`+
+    (ss.length?ss.map(s=>`<tr data-sid="${s.id}" style="cursor:pointer"><td class="sub">${dt(s.started_at)}<div>${ago(s.last_at)}</div></td>
+      <td>${s.who?`<b>${esc(s.who)}</b>`:`<span class="tag">익명 #${esc(s.anon_id.slice(0,6))}</span>`}</td>
+      <td>${s.mode==='cloud'?'<span class="tag blue">팀 작업</span>':'<span class="tag">PC 폴더</span>'}</td>
+      <td>${s.mode==='cloud'?`<b>${esc(s.project||s.hp_folder)}</b>`:`${esc(s.orig_folder)} → <b>${esc(s.hp_folder)}</b>`}</td>
+      <td class="n">${num(s.file_count)}</td><td class="n">${num(s.viewed)}</td><td class="n"><b>${num(s.saved)}</b></td><td class="n">${num(s.auto)}</td><td class="n">${num(s.edited)}</td><td class="n">${num(s.copied)}</td><td class="n">${num(s.ok)}</td><td class="sub">${esc(s.ua||'')}</td></tr>`).join(''):'<tr><td colspan="12" class="empty">기록이 없어요</td></tr>')}
+$('#uSessions').onclick=async e=>{const r=e.target.closest('[data-sid]');if(!r)return;const s=USAGE.sessions.find(x=>x.id===r.dataset.sid);
+  const {data,error}=await C.sb.from('usage_events').select('at,action,file_name,status,detail').eq('session_id',s.id).order('at').limit(2000);if(error){toast(error.message,'err');return}
+  const EV={open:'폴더 열기',view:'보기',save:'저장',copy:'원본 복사',ok:'확인',restore:'백업 복원',close:'창 닫음'};
+  $('#drTitle').textContent=`${s.who||'익명 #'+s.anon_id.slice(0,6)} · ${s.mode==='cloud'?(s.project||s.hp_folder):s.hp_folder}`;
+  const files={};for(const e of data){if(!e.file_name)continue;const f=files[e.file_name]=files[e.file_name]||{v:0,s:null};if(e.action==='view')f.v++;if(e.action==='save'||e.action==='copy')f.s=e.action==='copy'?'copied':e.status;if(e.action==='ok')f.s='ok'}
+  const fl=Object.entries(files);
+  $('#drBody').innerHTML=`<p class="note" style="margin:6px 0 12px">${dt(s.started_at)} ~ ${dt(s.last_at)} · ${esc(s.ua||'')}<br>원본 ${esc(s.orig_folder||'—')} → 보정본 ${esc(s.hp_folder||'—')} · 폴더 안 파일 ${num(s.file_count)}개</p>
+    <h2 style="font-size:14px;margin:10px 0">파일 (${fl.length})</h2><table><tr><th>파일</th><th>결과</th></tr>${fl.map(([n,f])=>`<tr><td class="mono">${esc(n)}</td><td>${f.s?`<span class="tag ${f.s==='edited'?'orange':f.s==='auto'?'green':'blue'}">${ST[f.s]||f.s}</span>`:'<span class="sub">보기만</span>'}</td></tr>`).join('')}</table>
+    <h2 style="font-size:14px;margin:18px 0 8px">시간순 기록</h2><div class="feed" style="max-height:none">${data.map(e=>`<div><time>${hm(e.at)}</time><span>${EV[e.action]||esc(e.action)} ${e.file_name?'· <span class="mono">'+esc(e.file_name)+'</span>':''} ${e.status&&e.action==='save'?`<span class="tag">${ST[e.status]||e.status}</span>`:''}${e.detail&&e.action==='save'?` <span class="sub" style="color:var(--mute);font-size:12px">${detailTxt(e.detail)}</span>`:''}</span></div>`).join('')}</div>`;
+  $('#drawer').hidden=false};
+function detailTxt(d){const a=[];if(d.rot)a.push('회전 '+d.rot+'°');if(d.tilt)a.push('기울기 '+(+d.tilt).toFixed(2)+'°');if(d.crop)a.push('크롭');if(d.paints)a.push('획 '+d.paints);if(d.color)a.push('색');if(d.locals)a.push('부분 색');if(d.pre)a.push('원본 수정');if(d.resize)a.push('크기');return a.join(' · ')}
+$('#drClose').onclick=()=>$('#drawer').hidden=true;
+$('#uDays').onchange=loadUsage;$('#uRefresh').onclick=loadUsage;$('#uWho').onchange=renderSessions;
+
+/* ---------------------------------------------------------------- 작업 묶음 */
+async function loadProjects(){await loadBase();
+  const stats={};await Promise.all(PROJ.map(async p=>{const d=await C.rpc('project_dashboard',{p_project:p.id}).catch(()=>null);const st=(d&&d.status)||{};stats[p.id]={n:(d&&d.total)||0,done:(d?d.total:0)-(st['']||0)-(st.skipped||0)}}));
+  $('#pList').innerHTML=`<tr><th>이름</th><th>메모</th><th class="n">파일</th><th class="n">검수 완료</th><th>만든 날</th><th></th></tr>`+(PROJ.length?PROJ.map(p=>{const f=stats[p.id]||{n:0,done:0},d=f.done;
+    return`<tr><td><b>${esc(p.name)}</b> ${p.archived?'<span class="tag">보관됨</span>':''}</td><td class="sub">${esc(p.note)}</td><td class="n">${num(f.n)}</td><td class="n">${num(d)}${f.n?` <span class="sub">(${Math.round(d/f.n*100)}%)</span>`:''}</td><td class="sub">${dt(p.created_at)}</td>
+      <td style="text-align:right"><button class="btn btn-dark btn-sm" data-open="${p.id}">관리</button></td></tr>`}).join(''):'<tr><td colspan="6" class="empty">아직 묶음이 없어요 · 위에서 만들어 주세요</td></tr>');
+  if(cur.pid)openDetail(cur.pid)}
+$('#pList').onclick=e=>{const b=e.target.closest('[data-open]');if(b)openDetail(b.dataset.open)};
+$('#pCreate').onclick=async()=>{const name=$('#pName').value.trim();if(!name){toast('이름을 입력하세요','warn');return}
+  const {data,error}=await C.sb.from('projects').insert({name,note:$('#pNote').value.trim(),cfg:{auto_mode:'balance',margin_mm:10,skew_warn:.3,backup:true}}).select().single();
+  if(error){toast(error.message,'err');return}$('#pName').value='';$('#pNote').value='';toast('묶음을 만들었어요 · 원본 폴더를 올려 주세요');cur.pid=data.id;loadProjects()};
+function openDetail(id){const p=PROJ.find(x=>x.id===id);if(!p)return;cur.pid=id;$('#pDetail').hidden=false;$('#pdName').textContent=p.name;
+  const c=p.cfg||{};$('#pcMode').value=c.auto_mode||'balance';$('#pcMargin').value=c.margin_mm??10;$('#pcSkew').value=c.skew_warn??.3;$('#pcBackup').value=c.backup===false?'0':'1';
+  $('#pdArchive').innerHTML=ic('archive',14)+(p.archived?'보관 해제':'보관(목록에서 숨김)')}
+$('#pdClose').onclick=()=>{$('#pDetail').hidden=true;cur.pid=null};
+$('#pcSave').onclick=async()=>{const cfg={auto_mode:$('#pcMode').value,margin_mm:+$('#pcMargin').value,skew_warn:+$('#pcSkew').value,backup:$('#pcBackup').value==='1'};
+  const {error}=await C.sb.from('projects').update({cfg}).eq('id',cur.pid);error?toast(error.message,'err'):toast('기본값을 저장했어요 · 다음에 여는 사람부터 적용');loadBase()};
+$('#pdArchive').onclick=async()=>{const p=PROJ.find(x=>x.id===cur.pid);await C.sb.from('projects').update({archived:!p.archived}).eq('id',p.id);toast(p.archived?'보관을 해제했어요':'보관했어요');loadProjects()};
+$('#pdDelete').onclick=async()=>{const p=PROJ.find(x=>x.id===cur.pid);if(prompt(`묶음과 모든 작업 기록이 지워집니다. 지우려면 묶음 이름(${p.name})을 입력하세요`)!==p.name)return;
+  const prog=startProg('저장소 파일 지우는 중…');
+  for(const side of['orig','hp','backup']){const names=[];for(let off=0;;off+=1000){const {data}=await C.sb.storage.from('scans').list(`${p.id}/${side}`,{limit:1000,offset:off});(data||[]).forEach(o=>names.push(`${p.id}/${side}/${o.name}`));if(!data||data.length<1000)break}
+    for(let i=0;i<names.length;i+=100)await C.sb.storage.from('scans').remove(names.slice(i,i+100))}
+  const {error}=await C.sb.from('projects').delete().eq('id',p.id);prog.done(error?'삭제 실패':'삭제했어요');if(error)toast(error.message,'err');cur.pid=null;$('#pDetail').hidden=true;loadProjects()};
+$('#pdLog').onclick=async()=>{const p=PROJ.find(x=>x.id===cur.pid);const rows=await C.all(()=>C.sb.from('logs').select('at,file_name,action,detail,user_id').eq('project_id',p.id).order('at'));
+  const who=Object.fromEntries(PEOPLE.map(x=>[x.id,x.name||x.login])),q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const csv='﻿'+[['시각','사람','파일','작업','상태','내용'],...rows.map(r=>[new Date(r.at).toLocaleString('ko-KR'),who[r.user_id]||'',r.file_name,ACT[r.action]||r.action,ST[(r.detail||{}).status]||'',detailTxt(r.detail||{})])].map(r=>r.map(q).join(',')).join('\r\n');
+  dl(new Blob([csv],{type:'text/csv'}),`작업기록_${p.name}.csv`)};
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
+function startProg(txt){$('#upProg').hidden=false;$('#upBar').style.width='0';$('#upTxt').textContent=txt;
+  return{set(i,n,t){$('#upBar').style.width=(n?i/n*100:0)+'%';$('#upTxt').textContent=t},done(t){$('#upBar').style.width='100%';$('#upTxt').textContent=t}}}
+/* 폴더 고르기: Edge/Chrome 은 폴더 선택 창, 그 밖은 파일 선택(폴더 업로드) */
+async function pickFiles(){
+  if(window.showDirectoryPicker){const d=await showDirectoryPicker({mode:'read',id:'scanqc-admin-up'});const out=[];
+    for await(const [n,h] of d.entries())if(h.kind==='file'&&Codec.EXTS.includes(Codec.extOf(n))&&!n.startsWith('.')&&!n.startsWith('~'))out.push(await h.getFile());return{name:d.name,files:out}}
+  return new Promise(res=>{const i=document.createElement('input');i.type='file';i.webkitdirectory=true;i.multiple=true;i.onchange=()=>{const fs=[...i.files].filter(f=>Codec.EXTS.includes(Codec.extOf(f.name)));res({name:(i.files[0]&&i.files[0].webkitRelativePath.split('/')[0])||'',files:fs})};i.click()})}
+const MIME={'.tif':'image/tiff','.tiff':'image/tiff','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.bmp':'image/bmp'};
+async function upload(side){const p=PROJ.find(x=>x.id===cur.pid);if(!p)return;
+  let pick;try{pick=await pickFiles()}catch(e){if(e.name!=='AbortError')toast(e.message,'err');return}
+  const files=pick.files;if(!files.length){toast('이미지 파일이 없어요','warn');return}
+  if(side==='hp'&&!confirm(`보정본 ${files.length}개를 올립니다. 같은 이름의 보정본이 이미 있으면 덮어써요. 계속할까요?`))return;
+  const have=await C.all(()=>C.sb.from('files').select('stem,orig_name,orig_bytes,hp_name,hp_bytes').eq('project_id',p.id)),hv=new Map(have.map(r=>[r.stem,r]));
+  const stem=n=>n.replace(/\.[^.]+$/,'').toLowerCase(),seen=new Set(),todo=[];
+  for(const f of files){const s=stem(f.name);if(seen.has(s))continue;seen.add(s);const h=hv.get(s);
+    if(side==='orig'&&h&&h.orig_name===f.name&&+h.orig_bytes===f.size)continue;todo.push(f)}
+  const prog=startProg(`${files.length}개 중 ${todo.length}개 올리는 중…`);let done=0,fail=0,rows=[];const t0=Date.now();
+  const flush=async()=>{if(!rows.length)return;const r=rows;rows=[];await C.rpc('add_files',{p_project:p.id,p_rows:r})};
+  const q=[...todo];await Promise.all([0,1,2,3].map(async()=>{while(q.length){const f=q.shift();
+    const {error}=await C.sb.storage.from('scans').upload(`${p.id}/${side}/${f.name}`,f,{upsert:true,contentType:MIME[Codec.extOf(f.name)],cacheControl:'0'});
+    if(error){fail++;console.warn(f.name,error)}else rows.push(side==='orig'?{stem:stem(f.name),orig_name:f.name,orig_bytes:f.size}:{stem:stem(f.name),hp_name:f.name,hp_bytes:f.size});
+    done++;const sp=(Date.now()-t0)/done;prog.set(done,todo.length,`${num(done)} / ${num(todo.length)} 올림${fail?` · 실패 ${fail}`:''} · 남은 시간 약 ${Math.ceil(sp*(todo.length-done)/60000)}분`);
+    if(rows.length>=100)await flush().catch(e=>toast(e.message,'err'))}}));
+  await flush().catch(e=>toast(e.message,'err'));
+  prog.done(`완료 · 올림 ${num(todo.length-fail)}개${files.length-todo.length?` · 이미 있어서 건너뜀 ${num(files.length-todo.length)}개`:''}${fail?` · 실패 ${fail}개 (다시 올리면 실패한 것만 올라가요)`:''}`);
+  if(fail)toast(`${fail}개를 올리지 못했어요 · 파일 크기 제한(Supabase 설정)을 확인하세요`,'err',6000);loadProjects()}
+$('#upOrig').onclick=()=>upload('orig');$('#upHp').onclick=()=>upload('hp');
+$('#exHp').onclick=async()=>{const p=PROJ.find(x=>x.id===cur.pid);if(!window.showDirectoryPicker){toast('PC용 Edge 또는 Chrome에서 내려받을 수 있어요','warn');return}
+  let dir;try{dir=await showDirectoryPicker({mode:'readwrite',id:'scanqc-admin-ex'})}catch(e){return}
+  let rows=await C.all(()=>C.sb.from('files').select('name,hp_name,status').eq('project_id',p.id).not('hp_name','is',null).order('seq'));
+  if($('#exDone').checked)rows=rows.filter(r=>r.status&&r.status!=='skipped');
+  if(!rows.length){toast('내려받을 보정본이 없어요','warn');return}
+  const prog=startProg(`${rows.length}개 내려받는 중…`);let done=0,fail=0;const q=[...rows];
+  await Promise.all([0,1,2].map(async()=>{while(q.length){const r=q.shift();try{const {data,error}=await C.sb.storage.from('scans').download(`${p.id}/hp/${r.hp_name}`);if(error)throw error;
+    const w=await (await dir.getFileHandle(r.hp_name,{create:true})).createWritable();await w.write(data);await w.close()}catch(e){fail++;console.warn(e)}
+    done++;prog.set(done,rows.length,`${num(done)} / ${num(rows.length)} 내려받음${fail?` · 실패 ${fail}`:''}`)}}));
+  prog.done(`완료 · ${dir.name} 폴더에 ${num(rows.length-fail)}개 저장${fail?` · 실패 ${fail}개`:''}`)};
+
+/* ---------------------------------------------------------------- 배정 */
+let ASG=null;
+async function loadAssign(){await loadBase();const pid=$('#aProj').value;if(!pid){$('#aPeople').innerHTML='<tr><td class="empty">작업 묶음을 먼저 만드세요</td></tr>';return}
+  ASG=await C.rpc('project_dashboard',{p_project:pid}).catch(e=>{toast(e.message,'err');return null});if(!ASG)return;
+  const ppl=PEOPLE.filter(p=>p.approved),by=Object.fromEntries((ASG.people||[]).map(x=>[x.id,x]));
+  $('#aSum').textContent=`전체 ${num(ASG.total)} · 미배정 ${num(ASG.unassigned)}`;
+  $('#aPeople').innerHTML=`<tr><th style="width:30px"><input type="checkbox" id="aAll"></th><th>이름</th><th class="n">배정</th><th class="n">배정 중 완료</th><th>역할</th></tr>`+ppl.map(p=>{const s=by[p.id]||{};
+    return`<tr><td><input type="checkbox" class="aChk" value="${p.id}" ${p.role==='worker'?'checked':''}></td><td><b>${esc(p.name||p.login)}</b> <span class="sub">${esc(p.login)}</span></td><td class="n">${num(s.assigned)}</td><td class="n">${num(s.assigned_done)}</td><td>${p.role==='admin'?'<span class="tag blue">관리자</span>':'<span class="tag">작업자</span>'}</td></tr>`}).join('');
+  $('#aAll').onchange=e=>$$('.aChk').forEach(c=>c.checked=e.target.checked);
+  $('#aWho').innerHTML=ppl.map(p=>`<option value="${p.id}">${esc(p.name||p.login)}</option>`).join('')}
+$('#aProj').onchange=loadAssign;
+$('#aEven').onclick=async()=>{const users=$$('.aChk').filter(c=>c.checked).map(c=>c.value);if(!users.length){toast('나눠 줄 사람을 체크하세요','warn');return}
+  const n=await C.rpc('assign_even',{p_project:$('#aProj').value,p_users:users,p_only_unassigned:$('#aOnlyUn').checked,p_only_todo:$('#aOnlyTodo').checked}).catch(e=>{toast(e.message,'err');return null});
+  if(n!=null){toast(`${num(n)}개 파일을 ${users.length}명에게 나눴어요`);loadAssign()}};
+async function rangeAssign(uid){const a=+$('#aFrom').value,b=+$('#aTo').value;if(!a||!b||b<a){toast('번호 범위를 확인하세요 (목록 순서 번호)','warn');return}
+  const {data,error}=await C.sb.from('files').update({assignee:uid}).eq('project_id',$('#aProj').value).gte('seq',a).lte('seq',b).select('id');
+  if(error){toast(error.message,'err');return}toast(`${num(data.length)}개 파일 ${uid?'배정':'배정 해제'}`);loadAssign()}
+$('#aRange').onclick=()=>rangeAssign($('#aWho').value);$('#aClear').onclick=()=>rangeAssign(null);
+$('#aUnlock').onclick=async()=>{const {data,error}=await C.sb.from('files').update({locked_by:null,locked_at:null}).eq('project_id',$('#aProj').value).not('locked_by','is',null).select('id');
+  error?toast(error.message,'err'):toast(`잠금 ${num(data.length)}개를 풀었어요`)};
+
+/* ---------------------------------------------------------------- 사람 */
+async function loadPeople(){await loadBase();
+  $('#mList').innerHTML=`<tr><th>이름</th><th>아이디</th><th>역할</th><th>승인</th><th>가입</th><th>마지막 접속</th></tr>`+PEOPLE.map(p=>`<tr><td><input class="inp mName" data-id="${p.id}" value="${esc(p.name)}" style="height:30px;width:140px"></td><td class="mono">${esc(p.login)}</td>
+    <td><select class="inp mRole" data-id="${p.id}" style="height:30px" ${p.id===C.user.id?'disabled':''}><option value="worker" ${p.role==='worker'?'selected':''}>작업자</option><option value="admin" ${p.role==='admin'?'selected':''}>관리자</option></select></td>
+    <td><button class="sw mAp ${p.approved?'on':''}" data-id="${p.id}" ${p.id===C.user.id?'disabled':''} title="${p.approved?'승인됨':'승인 대기'}"></button> ${p.approved?'':'<span class="tag orange">승인 대기</span>'}</td><td class="sub">${dt(p.created_at)}</td><td class="sub">${ago(p.last_seen)}</td></tr>`).join('')}
+$('#mList').onclick=async e=>{const b=e.target.closest('.mAp');if(!b||b.disabled)return;const p=PEOPLE.find(x=>x.id===b.dataset.id);
+  const {error}=await C.sb.from('profiles').update({approved:!p.approved}).eq('id',p.id);error?toast(error.message,'err'):toast(p.approved?'승인을 취소했어요':'승인했어요');loadPeople()};
+$('#mList').onchange=async e=>{const t=e.target,id=t.dataset.id;if(!id)return;const patch=t.classList.contains('mRole')?{role:t.value}:{name:t.value.trim()};
+  const {error}=await C.sb.from('profiles').update(patch).eq('id',id);error?toast(error.message,'err'):toast('바꿨어요');loadBase()};
+</script>
+</body>
+</html>
