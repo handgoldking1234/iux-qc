@@ -307,6 +307,10 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .ins-closed .ins-head{flex-direction:column;padding:16px 8px 8px}
 .ins-closed .ins-head h2{display:none}
 .mbtn,.scrim{display:none}
+a.btn{text-decoration:none}
+.pcdl{width:100%;display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 10px;border-radius:8px;background:var(--elev2);text-align:left;transition:.15s;color:var(--sub)}.pcdl:hover{background:#333;color:var(--text)}
+.pcdl span:nth-child(2){flex:1;min-width:0}.pcdl b{display:block;font-size:13px;color:var(--text)}.pcdl small{font-size:11px;color:var(--mute)}
+.steps{margin:4px 0 16px;padding-left:20px;line-height:1.9;font-size:13px;color:var(--sub)}.steps b{color:var(--text)}
 .inp-wrap.ok .inp{border-color:rgba(47,107,255,.45)}.inp-wrap.drag .inp{border-color:var(--accent);background:var(--accentDim)}
 .lib-closed .srcname{display:none}
 @media(max-width:1440px){.app{--libw:268px;--insw:296px}}
@@ -353,6 +357,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
         <div class="field"><label data-i="image" data-s="14">보정본 폴더 (HP · 저장할 곳)</label><div class="inp-wrap dropdir" data-k="hp"><input class="inp" id="dirHp" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickHp" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <button class="btn btn-green btn-block" id="btnOpen" data-i="folder-open" data-s="16">불러오기</button>
         <div class="recent" id="recent"></div>
+        <button class="pcdl" id="btnPc"><span data-i="monitor" data-s="16"></span><span><b>PC 설치형 받기</b><small>Windows · 인터넷 없이 · 전체 경로 표시</small></span><span data-i="download" data-s="15"></span></button>
         <div class="privacy" id="privacy" hidden><span data-i="shield-check" data-s="13"></span><span>이미지는 이 PC 밖으로 나가지 않아요. 사용 통계(폴더·파일 이름, 처리 건수)만 기록돼요.</span></div>
       </div>
       <div id="paneCloud" hidden>
@@ -607,6 +612,18 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
   <div class="set-row"><div>덮어쓰기 전 백업<small>처음 덮어쓸 때 원래 보정본을 보관 (내 PC 폴더: 이 브라우저 안 · 팀 작업: 클라우드) · 백업 복원 가능</small></div><select class="inp" id="sBackup"><option value="1">켜기</option><option value="0">끄기</option></select></div>
   <div class="set-row"><div>작업 기록<small>저장·확인·원본 복사 기록을 CSV로 내려받기</small></div><button class="btn btn-dark btn-sm" id="sLog" data-i="download" data-s="14">CSV 내려받기</button></div>
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn btn-ghost" data-close>닫기</button><button class="btn btn-green" id="sSave">저장</button></div>
+</div></div>
+
+<div class="modal-bg" id="mPc"><div class="modal" style="width:440px">
+  <h3>PC 설치형 ScanQC <button class="icon-btn" data-close data-i="x"></button></h3>
+  <p class="hint" style="font-size:13px;margin:0 0 12px">Windows 10·11용 · 인터넷 없이 동작 · 폴더 전체 경로 표시 · 파이썬 포함(따로 설치할 것 없음)</p>
+  <ol class="steps">
+    <li>아래 버튼으로 <b>ScanQC_PC.zip</b> 내려받기 (약 32MB)</li>
+    <li>압축 파일을 <b>먼저 풀기</b> (압축 안에서 바로 실행하면 안 돼요)</li>
+    <li>풀린 폴더의 <b>ScanQC.vbs</b> 더블클릭 → 바탕화면에 ScanQC 아이콘이 생겨요</li>
+    <li>처음 한 번 'Windows의 PC 보호' 창이 뜨면 <b>추가 정보 → 실행</b></li>
+  </ol>
+  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" data-close>닫기</button><a class="btn btn-green" id="pcGo" href="https://github.com/handgoldking1234/iux-qc/raw/main/download/ScanQC_PC.zip" download><span data-i="download" data-s="15"></span>내려받기</a></div>
 </div></div>
 
 <div class="modal-bg lmodal" id="mLogin"><div class="modal">
@@ -1506,6 +1523,7 @@ cvEd.addEventListener('dblclick',e=>{if(!S.cur)return;const[x,y]=cvPos(e),pts=co
   const i=pts.findIndex(p=>Math.hypot((p[0]-x)/255*272,(p[1]-y)/255*200)<10);if(i>0&&i<pts.length-1)commit(()=>{colorObj(true).cv[S.cvCh].splice(i,1)})});
 
 /* ======================= events ======================= */
+$('#btnPc').onclick=()=>$('#mPc').classList.add('show');$('#pcGo').addEventListener('click',()=>{try{Engine.Usage.track('pc_download')}catch(e){}});
 $('#pickOrig').onclick=()=>pickDir('orig');$('#pickHp').onclick=()=>pickDir('hp');
 for(const k of['orig','hp']){const i=$(DIRI[k]),w=i.closest('.inp-wrap');
   i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openLocal()}});
