@@ -30,7 +30,7 @@ input,select{font:inherit;color:var(--text)}
 ::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.3)}
 ::-webkit-scrollbar-track{background:transparent}
 
-.app{display:grid;grid-template-columns:var(--libw,300px) minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr) 88px;gap:8px;padding:8px 8px 0;height:100vh}
+.app{display:grid;grid-template-columns:var(--libw,300px) minmax(0,1fr) var(--insw,320px);grid-template-rows:minmax(0,1fr) 88px;gap:8px;padding:8px 8px 0;height:100vh}
 .app.lib-closed{--libw:72px}
 .panel{background:var(--base);border-radius:var(--r);min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
@@ -300,10 +300,42 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .lmodal .modal{width:380px}.lmodal .field{margin-bottom:12px}.lmodal .msg{min-height:18px;font-size:12px;color:var(--red);margin:4px 0 10px}
 .srcname{font-size:12px;color:var(--sub);margin:0 16px 10px;display:flex;align-items:center;gap:6px;min-width:0}.srcname b{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .unsupported{font-size:12px;color:var(--orange);line-height:1.5;background:rgba(255,164,43,.08);border-radius:6px;padding:8px 10px;margin-bottom:10px}
+
+/* ---- 패널 접기 · 반응형 ---- */
+.app.ins-closed{--insw:56px}
+.ins-closed .ins-body{display:none}
+.ins-closed .ins-head{flex-direction:column;padding:16px 8px 8px}
+.ins-closed .ins-head h2{display:none}
+.mbtn,.scrim{display:none}
+.lib-closed .srcname{display:none}
+@media(max-width:1440px){.app{--libw:268px;--insw:296px}}
+@media(max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);gap:6px;padding:6px 6px 0}
+  .lib,.ins{position:fixed;top:0;bottom:0;z-index:60;width:min(340px,88vw);border-radius:0;transition:transform .22s ease;box-shadow:0 0 48px rgba(0,0,0,.7)}
+  .lib{left:0;transform:translateX(-105%)}.ins{right:0;transform:translateX(105%)}
+  .app.lib-open .lib,.app.ins-open .ins{transform:none}
+  .app.lib-open .scrim,.app.ins-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55}
+  .mbtn{display:inline-grid}
+  .stage-head{padding:10px 10px 8px;gap:8px;min-height:56px;flex-wrap:wrap}
+  .title h1{font-size:18px}.title p{font-size:12px}
+  .head-actions .hbtn{font-size:0;gap:0;padding:0 8px}
+  .panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);padding:0 6px}
+  .panes.solo{grid-template-columns:minmax(0,1fr);grid-template-rows:0 minmax(0,1fr)}
+  .toolbar{max-height:calc(100% - 60px);overflow-y:auto;scrollbar-width:none}
+  .player{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) auto;gap:8px}
+  .player .vol>*:not(#pFit):not(#pSolo){display:none}
+  .toolbar>*{flex:none}
+}
+@media(max-width:560px){
+  .player{grid-template-columns:minmax(0,1fr)}.player .np,.player .vol{display:none}
+  .stage-head .title{flex:1 1 calc(100% - 52px)}
+  .player{grid-template-columns:minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
 <div class="app" id="app">
+  <div class="scrim" id="scrim"></div>
 
   <!-- Library -->
   <aside class="panel lib" id="lib">
@@ -356,6 +388,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
   <!-- Stage -->
   <main class="panel stage">
     <div class="stage-head">
+      <button class="icon-btn mbtn" id="mLib" title="파일 목록" data-i="menu"></button>
       <div class="title"><h1 id="tName">ScanQC</h1><p id="tSub">원본과 보정본을 나란히 비교하며 검수합니다</p></div>
       <div class="head-actions">
         <button class="hbtn" id="btnUndo" title="되돌리기 (Ctrl+Z)"><span data-i="undo-2" data-s="15"></span>되돌리기</button>
@@ -367,6 +400,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
         <button data-v="hp">HP 기준</button><button data-v="orig">원본 기준</button>
       </div>
       
+      <button class="icon-btn mbtn" id="mIns" title="보정 패널" data-i="sliders"></button>
     </div>
     <div class="panes" id="panes">
       <section class="pane" id="paneO">
@@ -416,7 +450,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 
   <!-- Inspector -->
   <aside class="panel ins">
-    <div class="ins-head"><h2>보정</h2></div>
+    <div class="ins-head"><h2>보정</h2><button class="icon-btn" id="btnIns" title="보정 패널 접기" data-i="panel-right"></button></div>
     <div class="ins-body">
       <div class="sec" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
@@ -595,6 +629,8 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 <script>
 /* ======================= Lucide icons (inline, offline) ======================= */
 const ICONS={
+'panel-right':'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>',
+'menu':'<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
 'monitor':'<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
 'users':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
 'shield-check':'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
@@ -1465,8 +1501,21 @@ $('#sLog').onclick=async()=>{const src=Engine.src;if(!src){toast('먼저 폴더�
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`scanqc_log_${src.title.replace(/[\\/:*?"<>| ]+/g,'_')}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 $('#chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;S.filter=b.dataset.f;renderList()};
 $('#q').oninput=e=>{S.q=e.target.value.trim().toLowerCase();renderList()};
-$('#list').onclick=e=>{const r=e.target.closest('.row');if(r)jumpTo(+r.dataset.i)};
-$('#btnLib').onclick=()=>$('#app').classList.toggle('lib-closed');
+$('#list').onclick=e=>{const r=e.target.closest('.row');if(r){jumpTo(+r.dataset.i);if(MOB.matches)APP.classList.remove('lib-open')}};
+/* 양쪽 패널 접기 · 좁은 화면에서는 서랍처럼 열고 닫기 */
+const APP=$('#app'),MOB=matchMedia('(max-width:860px)');
+const PNL={get(){try{return JSON.parse(localStorage.getItem('scanqc:panels')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('scanqc:panels',JSON.stringify(v))}catch(e){}}};
+function togglePanel(w){if(MOB.matches){const o=w+'-open',on=!APP.classList.contains(o);APP.classList.remove('lib-open','ins-open');APP.classList.toggle(o,on);return}
+  APP.classList.toggle(w+'-closed');PNL.set({lib:APP.classList.contains('lib-closed'),ins:APP.classList.contains('ins-closed')})}
+let panelBand=null;
+function layoutPanels(){const w=innerWidth,band=MOB.matches?0:w<980?1:w<1180?2:3;if(band===panelBand)return;panelBand=band;
+  if(band===0){APP.classList.remove('lib-closed','ins-closed');return}
+  APP.classList.remove('lib-open','ins-open');const p=PNL.get()||{};
+  APP.classList.toggle('lib-closed',band<=2||!!p.lib);APP.classList.toggle('ins-closed',band<=1||!!p.ins)}
+layoutPanels();addEventListener('resize',()=>{clearTimeout(layoutPanels.t);layoutPanels.t=setTimeout(layoutPanels,120)});
+$('#btnLib').onclick=()=>togglePanel('lib');$('#btnIns').onclick=()=>togglePanel('ins');
+$('#mLib').onclick=()=>togglePanel('lib');$('#mIns').onclick=()=>togglePanel('ins');
+$('#scrim').onclick=()=>APP.classList.remove('lib-open','ins-open');
 $('#segTool').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.v;if(PAINT.has(t))S.lastPaint=t;setTool(S.tool===t&&t!=='select'?'select':t)};
 $('#segBase').onclick=e=>{const b=e.target.closest('button');if(b)toggleBase(b.dataset.v)};
 $('#segAuto').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const pristine=isAuto();S.cfg.auto_mode=b.dataset.v;syncUI();
