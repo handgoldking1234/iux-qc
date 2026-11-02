@@ -307,6 +307,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .ins-closed .ins-head{flex-direction:column;padding:16px 8px 8px}
 .ins-closed .ins-head h2{display:none}
 .mbtn,.scrim{display:none}
+.inp-wrap.ok .inp{border-color:rgba(47,107,255,.45)}.inp-wrap.drag .inp{border-color:var(--accent);background:var(--accentDim)}
 .lib-closed .srcname{display:none}
 @media(max-width:1440px){.app{--libw:268px;--insw:296px}}
 @media(max-width:860px){
@@ -348,8 +349,8 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
       <div class="seg srcseg" id="srcSeg"><button data-src="local" class="on"><span data-i="monitor" data-s="14"></span>내 PC 폴더</button><button data-src="cloud"><span data-i="users" data-s="14"></span>팀 작업</button></div>
       <div id="paneLocal">
         <div class="unsupported" id="fsNo" hidden>이 브라우저는 PC 폴더를 직접 열 수 없어요. <b>PC용 Edge 또는 Chrome</b>에서 열어 주세요.</div>
-        <div class="field"><label data-i="folder-open" data-s="14">원본 폴더 (읽기만)</label><button class="dirbtn" id="pickOrig"><span class="dn">폴더 선택</span><span data-i="folder-search" data-s="17"></span></button></div>
-        <div class="field"><label data-i="image" data-s="14">보정본 폴더 (HP · 저장할 곳)</label><button class="dirbtn" id="pickHp"><span class="dn">폴더 선택</span><span data-i="folder-search" data-s="17"></span></button></div>
+        <div class="field"><label data-i="folder-open" data-s="14">원본 폴더 (읽기만)</label><div class="inp-wrap dropdir" data-k="orig"><input class="inp" id="dirOrig" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickOrig" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
+        <div class="field"><label data-i="image" data-s="14">보정본 폴더 (HP · 저장할 곳)</label><div class="inp-wrap dropdir" data-k="hp"><input class="inp" id="dirHp" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickHp" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <button class="btn btn-green btn-block" id="btnOpen" data-i="folder-open" data-s="16">불러오기</button>
         <div class="recent" id="recent"></div>
         <div class="privacy" id="privacy" hidden><span data-i="shield-check" data-s="13"></span><span>이미지는 이 PC 밖으로 나가지 않아요. 사용 통계(폴더·파일 이름, 처리 건수)만 기록돼요.</span></div>
@@ -1392,25 +1393,45 @@ function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.m
 function setSolo(on){S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':''}
 
 /* ======================= 열기: 내 PC 폴더 · 팀 작업 묶음 ======================= */
-const L={orig:null,hp:null};
+const L={orig:null,hp:null,path:{orig:'',hp:''}};
+const DIRI={orig:'#dirOrig',hp:'#dirHp'};
+const unq=t=>String(t||'').trim().replace(/^["']+|["']+$/g,'');
+const normPath=t=>unq(t).replace(/\//g,'\\').replace(/\\+$/,'').toLowerCase();
+const lastSeg=t=>{const a=unq(t).replace(/[\\/]+$/,'').split(/[\\/]/);return(a[a.length-1]||'').toLowerCase()};
 const escH=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function syncDirs(){for(const[k,id]of[['orig','#pickOrig'],['hp','#pickHp']]){const b=$(id);b.classList.toggle('set',!!L[k]);b.querySelector('.dn').textContent=L[k]?L[k].name:'폴더 선택'}}
+function syncDirs(){for(const k of['orig','hp']){const i=$(DIRI[k]);i.closest('.inp-wrap').classList.toggle('ok',!!L[k]);
+  // 브라우저는 폴더 이름만 알 수 있어서, 경로를 입력해 두면 그 경로를 같이 기억
+  if(L[k]&&(!i.value.trim()||lastSeg(i.value)!==L[k].name.toLowerCase()))i.value=L.path[k]||L[k].name;
+  i.title=L[k]?i.value:''}}
+/* 입력한 경로로 열기: 전에 연 적 있는 폴더면 바로 연결 (브라우저 보안상 처음 여는 폴더는 버튼으로 한 번 선택) */
+async function resolveTyped(k){const v=unq($(DIRI[k]).value);L.path[k]=v;
+  if(!v){L[k]=null;syncDirs();return false}
+  if(L[k]&&lastSeg(v)===L[k].name.toLowerCase())return true;
+  const n=normPath(v);for(const r of await Engine.IDB.all().catch(()=>[])){
+    const pth=k==='orig'?r.origPath:r.hpPath;if(pth&&normPath(pth)===n&&r[k]){L[k]=r[k];syncDirs();return true}}
+  L[k]=null;$(DIRI[k]).closest('.inp-wrap').classList.remove('ok');return false}
+async function knownPath(k,h){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(r[k]&&await r[k].isSameEntry(h))return(k==='orig'?r.origPath:r.hpPath)||''}catch(e){}}return''}
 async function pickDir(which){
   if(!window.showDirectoryPicker){toast('이 브라우저는 PC 폴더를 열 수 없어요 · PC용 Edge 또는 Chrome을 사용하세요','err',6000);return}
-  try{const h=await showDirectoryPicker({id:'scanqc-'+which,mode:which==='hp'?'readwrite':'read',startIn:L[which]||'documents'});L[which]=h;syncDirs();
+  try{const h=await showDirectoryPicker({id:'scanqc-'+which,mode:which==='hp'?'readwrite':'read',startIn:L[which]||'documents'});L[which]=h;
+    const cur=unq($(DIRI[which]).value);L.path[which]=cur&&lastSeg(cur)===h.name.toLowerCase()?cur:await knownPath(which,h);$(DIRI[which]).value='';syncDirs();
     if(L.orig&&L.hp)toast('두 폴더가 준비됐어요 · 불러오기를 누르세요')}
   catch(e){if(e.name!=='AbortError')toast('폴더를 열 수 없어요 · '+e.message,'err',5000)}}
 async function perm(h,mode){try{if(await h.queryPermission({mode})==='granted')return true;return await h.requestPermission({mode})==='granted'}catch(e){return false}}
 async function openLocal(rec){
+  if(rec){L.path.orig=rec.origPath||'';L.path.hp=rec.hpPath||'';$(DIRI.orig).value='';$(DIRI.hp).value=''}
+  else{for(const k of['orig','hp'])if(!(await resolveTyped(k))&&unq($(DIRI[k]).value)){
+    toast(`'${unq($(DIRI[k]).value)}' 는 처음 여는 폴더라 경로만으로 열 수 없어요 · 오른쪽 버튼으로 한 번 고르면 다음부터 경로 입력만으로 열려요`,'warn',7000);$(DIRI[k]).focus();return}}
   let o=L.orig,h=L.hp;
   if(rec){o=rec.orig;h=rec.hp}
-  if(!o||!h){toast('원본 폴더와 보정본 폴더를 모두 선택하세요','warn');return}
+  if(!o||!h){toast('원본 폴더와 보정본 폴더를 모두 정하세요 · 경로 입력 또는 오른쪽 버튼','warn');return}
   if(!(await perm(o,'read'))||!(await perm(h,'readwrite'))){toast('폴더 사용 권한을 허용해야 열 수 있어요','warn',4000);return}
   if(await o.isSameEntry(h)){toast('원본 폴더와 보정본 폴더가 같으면 원본이 덮어써져요 · 다른 폴더를 고르세요','err',6000);return}
   L.orig=o;L.hp=h;syncDirs();
   if(!rec){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(await r.hp.isSameEntry(h)&&await r.orig.isSameEntry(o)){rec=r;break}}catch(e){}}}
   if(!rec)rec={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),statuses:{},last:null,logs:[]};
-  Object.assign(rec,{orig:o,hp:h,origName:o.name,hpName:h.name,updated:Date.now()});
+  const lab=(k,hd)=>{const v=unq($(DIRI[k]).value);return v&&lastSeg(v)===hd.name.toLowerCase()&&/[\\/]/.test(v)&&normPath(v)!==normPath(rec[k+'Path'])?v:rec[k+'Path']&&normPath(v)===normPath(rec[k+'Path'])?rec[k+'Path']:(L.path[k]&&lastSeg(L.path[k])===hd.name.toLowerCase()?L.path[k]:(rec[k+'Path']||''))};
+  Object.assign(rec,{orig:o,hp:h,origName:o.name,hpName:h.name,origPath:lab('orig',o),hpPath:lab('hp',h),updated:Date.now()});
   await startSource(new Engine.LocalSource(o,h,rec),$('#btnOpen'));renderRecent()}
 async function openProject(){const id=$('#projSel').value,p=(S.projects||[]).find(x=>x.id===id);if(!p){toast('작업 묶음을 고르세요','warn');return}
   await startSource(new Engine.CloudSource(p),$('#btnOpenProj'))}
@@ -1430,7 +1451,7 @@ async function startSource(src,btn){
 async function renderRecent(){const box=$('#recent');if(!window.indexedDB||!window.showDirectoryPicker){box.innerHTML='';return}
   const all=(await Engine.IDB.all().catch(()=>[])).sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,6);
   box.innerHTML=all.length?'<b>최근 폴더</b>'+all.map(r=>{const st=r.statuses||{},n=Object.values(st).filter(v=>v&&v!=='skipped').length;
-    return`<button class="rec" data-id="${r.id}" title="${escH(r.origName)} → ${escH(r.hpName)}"><span>${escH(r.origName)} → ${escH(r.hpName)}</span><small>${n}장</small><i class="x" data-del="${r.id}" title="목록에서 지우기">${ic('x',12)}</i></button>`}).join(''):'';
+    const t=`${r.origPath||r.origName} → ${r.hpPath||r.hpName}`;return`<button class="rec" data-id="${r.id}" title="${escH(t)}"><span>${escH(r.origName)} → ${escH(r.hpName)}</span><small>${n}장</small><i class="x" data-del="${r.id}" title="목록에서 지우기">${ic('x',12)}</i></button>`}).join(''):'';
   box.onclick=async e=>{const d=e.target.closest('[data-del]');if(d){e.stopPropagation();await Engine.IDB.del(d.dataset.del);renderRecent();return}
     const b=e.target.closest('.rec');if(!b)return;const r=all.find(x=>x.id===b.dataset.id);if(r)openLocal(r)}}
 
@@ -1486,6 +1507,15 @@ cvEd.addEventListener('dblclick',e=>{if(!S.cur)return;const[x,y]=cvPos(e),pts=co
 
 /* ======================= events ======================= */
 $('#pickOrig').onclick=()=>pickDir('orig');$('#pickHp').onclick=()=>pickDir('hp');
+for(const k of['orig','hp']){const i=$(DIRI[k]),w=i.closest('.inp-wrap');
+  i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();openLocal()}});
+  i.addEventListener('change',()=>resolveTyped(k));
+  // 탐색기에서 폴더를 끌어다 놓기
+  w.addEventListener('dragover',e=>{e.preventDefault();w.classList.add('drag')});w.addEventListener('dragleave',()=>w.classList.remove('drag'));
+  w.addEventListener('drop',async e=>{e.preventDefault();w.classList.remove('drag');const it=[...(e.dataTransfer.items||[])].find(x=>x.kind==='file');
+    if(!it||!it.getAsFileSystemHandle){toast('이 브라우저는 폴더 끌어다 놓기를 지원하지 않아요 · 오른쪽 버튼을 쓰세요','warn');return}
+    const h=await it.getAsFileSystemHandle();if(!h||h.kind!=='directory'){toast('폴더를 끌어다 놓으세요','warn');return}
+    L[k]=h;L.path[k]=await knownPath(k,h);i.value='';syncDirs();if(L.orig&&L.hp)toast('두 폴더가 준비됐어요 · 불러오기를 누르세요')})}
 $('#btnOpen').onclick=()=>openLocal();$('#btnOpenProj').onclick=openProject;
 $('#srcSeg').onclick=e=>{const b=e.target.closest('[data-src]');if(b)setSrcTab(b.dataset.src)};
 $('#btnLogin').onclick=()=>{setLgMode('in');$('#mLogin').classList.add('show');setTimeout(()=>$('#lgId').focus(),50)};

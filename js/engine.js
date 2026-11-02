@@ -154,7 +154,7 @@
   class LocalSource {
     constructor(origDir, hpDir, rec) { this.kind = 'local'; this.o = origDir; this.h = hpDir; this.rec = rec; this.persistT = null; }
     get label() { return { mode: 'local', orig_folder: this.o.name, hp_folder: this.h.name }; }
-    get title() { return `${this.o.name} → ${this.h.name}`; }
+    get title() { return `${this.rec.origPath || this.o.name} → ${this.rec.hpPath || this.h.name}`; }
     static async list(dir) {
       const m = new Map();
       for await (const [n, hd] of dir.entries()) {
