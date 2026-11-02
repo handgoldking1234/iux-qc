@@ -888,11 +888,17 @@ setInterval(()=>{if(S.sel&&!drag&&!document.hidden){S.ants=((S.ants||0)+1)%9;S.e
 
 /* ======================= overlays & interaction ======================= */
 const HS=7;
+/* 크롭 틀(회전 가능): 스테이지 픽셀 기준 중심·크기·각도(a, 도, 시계방향) */
+function cropGeo(r,st){const W=st.width,H=st.height;return{cx:(r.x+r.w/2)*W,cy:(r.y+r.h/2)*H,w:r.w*W,h:r.h*H,a:r.a||0,W,H}}
+function cropPts(v,r){const g=cropGeo(r,v.src),t=rad(g.a),c=Math.cos(t),s=Math.sin(t),hw=g.w/2,hh=g.h/2;
+  const P=(lx,ly)=>v.toScr(g.cx+lx*c-ly*s,g.cy+lx*s+ly*c);
+  return{P,g,hw,hh,hs:{nw:P(-hw,-hh),n:P(0,-hh),ne:P(hw,-hh),e:P(hw,0),se:P(hw,hh),s:P(0,hh),sw:P(-hw,hh),w:P(-hw,0)}}}
 function cropScreenRect(v,r){const st=v.src;const[x0,y0]=v.toScr(r.x*st.width,r.y*st.height),[x1,y1]=v.toScr((r.x+r.w)*st.width,(r.y+r.h)*st.height);return{x0,y0,x1,y1}}
 function handlesOf(q){const mx=(q.x0+q.x1)/2,my=(q.y0+q.y1)/2;return{nw:[q.x0,q.y0],n:[mx,q.y0],ne:[q.x1,q.y0],e:[q.x1,my],se:[q.x1,q.y1],s:[mx,q.y1],sw:[q.x0,q.y1],w:[q.x0,my]}}
-function hitCrop(x,y){if(!S.pending)return null;const q=cropScreenRect(S.ev,S.pending),hs=handlesOf(q);
-  for(const k in hs){if(Math.abs(hs[k][0]-x)<=HS+4&&Math.abs(hs[k][1]-y)<=HS+4)return k}
-  if(x>q.x0&&x<q.x1&&y>q.y0&&y<q.y1)return'move';return null}
+function hitCrop(x,y){if(!S.pending)return null;const v=S.ev,{g,hs,hw,hh}=cropPts(v,S.pending);
+  for(const k in hs){if(Math.hypot(hs[k][0]-x,hs[k][1]-y)<=HS+5)return k}
+  const[sx,sy]=v.toSrc(x,y),t=rad(-g.a),dx=sx-g.cx,dy=sy-g.cy,lx=dx*Math.cos(t)-dy*Math.sin(t),ly=dx*Math.sin(t)+dy*Math.cos(t);
+  return Math.abs(lx)<=hw&&Math.abs(ly)<=hh?'move':null}
 const CURSOR={nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize',n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize',move:'move'};
 function eraseToScreen(v,r){const st=stageC.cv;let sx=r.x*st.width,sy=r.y*st.height;const cr=S.edits.crop;
   if(S.tool!=='crop'&&cr){sx-=cr.x*st.width;sy-=cr.y*st.height}
@@ -921,15 +927,16 @@ vH.overlay=vO.overlay=(c,v)=>{if(v!==S.ev)return;
       c.beginPath();c.moveTo(x-9,y);c.lineTo(x-2,y);c.moveTo(x+2,y);c.lineTo(x+9,y);c.moveTo(x,y-9);c.lineTo(x,y-2);c.moveTo(x,y+2);c.lineTo(x,y+9);c.stroke();c.restore()}
     if(S.hover&&S.hover.v===v){c.save();c.strokeStyle='#fff';c.lineWidth=1.2;c.shadowColor='rgba(0,0,0,.9)';c.shadowBlur=2;
       c.beginPath();c.arc(S.hover.x,S.hover.y,Math.max(2,r),0,7);c.stroke();c.restore()}}
-  if(drag&&drag.type==='rotate'){const t=S.edits.tilt;c.save();c.font='600 13px Pretendard,Malgun Gothic,sans-serif';
+  if(drag&&drag.type==='rotate'){const t=drag.pend&&S.pending?(S.pending.a||0):S.edits.tilt;c.save();c.font='600 13px Pretendard,Malgun Gothic,sans-serif';
     const txt=`${t>=0?'+':''}${t.toFixed(1)}°`,w=c.measureText(txt).width+16;c.fillStyle='rgba(0,0,0,.8)';c.fillRect(drag.mx+14,drag.my+14,w,24);
     c.fillStyle='#fff';c.fillText(txt,drag.mx+22,drag.my+31);c.strokeStyle='rgba(47,107,255,.8)';c.setLineDash([4,4]);c.beginPath();c.moveTo(drag.cx,drag.cy);c.lineTo(drag.mx,drag.my);c.stroke();c.restore()}
-  if(S.tool==='crop'&&S.pending){const q=cropScreenRect(v,S.pending);
-    c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.rect(0,0,v.w,v.h);c.rect(q.x0,q.y0,q.x1-q.x0,q.y1-q.y0);c.fill('evenodd');
+  if(S.tool==='crop'&&S.pending){const{P,hs,hw,hh}=cropPts(v,S.pending),poly=[hs.nw,hs.ne,hs.se,hs.sw];
+    const path=()=>{c.moveTo(poly[0][0],poly[0][1]);for(let i=1;i<4;i++)c.lineTo(poly[i][0],poly[i][1]);c.closePath()};
+    c.fillStyle='rgba(0,0,0,.55)';c.beginPath();c.rect(0,0,v.w,v.h);path();c.fill('evenodd');
     c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=1;c.beginPath();
-    for(let i=1;i<3;i++){const x=q.x0+(q.x1-q.x0)*i/3,y=q.y0+(q.y1-q.y0)*i/3;c.moveTo(x,q.y0);c.lineTo(x,q.y1);c.moveTo(q.x0,y);c.lineTo(q.x1,y)}c.stroke();
-    c.strokeStyle='#2F6BFF';c.lineWidth=2;c.strokeRect(q.x0,q.y0,q.x1-q.x0,q.y1-q.y0);
-    const hs=handlesOf(q);c.fillStyle='#fff';for(const k in hs){c.fillRect(hs[k][0]-HS/2-1,hs[k][1]-HS/2-1,HS+2,HS+2)}}
+    for(let i=1;i<3;i++){const fx=-hw+2*hw*i/3,fy=-hh+2*hh*i/3,a=P(fx,-hh),b=P(fx,hh),d=P(-hw,fy),e2=P(hw,fy);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.moveTo(d[0],d[1]);c.lineTo(e2[0],e2[1])}c.stroke();
+    c.strokeStyle='#2F6BFF';c.lineWidth=2;c.beginPath();path();c.stroke();
+    c.fillStyle='#fff';for(const k in hs){c.fillRect(hs[k][0]-HS/2-1,hs[k][1]-HS/2-1,HS+2,HS+2)}}
 
 };
 
@@ -955,7 +962,7 @@ function bindViewer(v,isH){
     const[sx0,sy0]=v.toSrc(x,y),outside=sx0<0||sy0<0||sx0>v.src.width||sy0>v.src.height;
     if(S.tool==='zoom'&&e.button===0){drag={type:'zoom',v,x0:x,ax:x,ay:y,p0:v.pct,moved:false,alt:e.altKey};S.dragging=true;return}
     if(e.button===1||e.button===2||tool==='select'||(e.altKey&&tool!=='stamp')){drag={type:'pan',v,x0:x,y0:y,px:v.px,py:v.py};el.classList.add('panning')}
-    else if(tool==='rotate'||(tool==='crop'&&outside&&!hitCrop(x,y))){const[cx,cy]=v.toScr(v.src.width/2,v.src.height/2);
+    else if(tool==='rotate'||(tool==='crop'&&S.pending&&!hitCrop(x,y))){const g=tool==='crop'?cropGeo(S.pending,v.src):null,[cx,cy]=g?v.toScr(g.cx,g.cy):v.toScr(v.src.width/2,v.src.height/2);
       drag={type:'rotate',cx,cy,mx:x,my:y,a0:Math.atan2(y-cy,x-cx),snap:clone(S.edits),pend:S.pending&&clone(S.pending)}}
     else if(SELT.has(tool)){const[px,py]=srcToStage(sx0,sy0),st=stageC.cv;
       if(S.sel&&!S.sel.inv&&inSel(S.sel,px/st.width,py/st.height))drag={type:'selmove',p0:[px,py],s0:clone(S.sel)};
@@ -971,14 +978,15 @@ function bindViewer(v,isH){
     S.dragging=true});
   cv.addEventListener('pointermove',e=>{const[x,y]=pos(e);
     if(!drag){
-      if(v===S.ev&&S.tool==='crop'){const h=hitCrop(x,y),[sx,sy]=v.toSrc(x,y),out=sx<0||sy<0||sx>v.src.width||sy>v.src.height;cv.style.cursor=h?CURSOR[h]:out?rotCursor(v,x,y):'crosshair'}
+      if(v===S.ev&&S.tool==='crop'){const h=hitCrop(x,y);cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}
       else if(v===S.ev&&S.tool==='rotate'&&v.src)cv.style.cursor=rotCursor(v,x,y);else cv.style.cursor='';
       if(v===S.ev&&PAINT.has(S.tool)&&v.src){const[sx,sy]=v.toSrc(x,y);S.hover={v,x,y,st:srcToStage(sx,sy)};v.render()}
       updateMag(e,v);return}
     if(drag.type==='rotate'){cv.style.cursor=rotCursor(v,x,y);let d=(Math.atan2(y-drag.cy,x-drag.cx)-drag.a0)*180/Math.PI;d=e.shiftKey?Math.round(d):Math.round(d*10)/10;
-      drag.mx=x;drag.my=y;const ed=clone(drag.snap);setTilt(ed,drag.snap.tilt+d);S.edits=ed;
-      // 크롭 중 회전: 크롭 틀도 이미지와 함께 돌아가며 이동 (같은 내용을 계속 감쌈)
-      if(drag.pend){const tmp=clone(drag.snap);tmp.crop=clone(drag.pend);setTilt(tmp,drag.snap.tilt+d);S.pending=tmp.crop}cancelAnimationFrame(drag.raf);drag.raf=requestAnimationFrame(()=>{renderRight(true);syncUI()});return}
+      drag.mx=x;drag.my=y;
+      // 크롭 중 회전: 이미지는 그대로, 크롭 틀이 기울어짐 (확정하면 틀 안쪽이 반듯하게 펴짐)
+      if(drag.pend){S.pending={...drag.pend,a:Math.round(((drag.pend.a||0)+d)*100)/100};updateCropBar();v.render();return}
+      const ed=clone(drag.snap);setTilt(ed,drag.snap.tilt+d);S.edits=ed;cancelAnimationFrame(drag.raf);drag.raf=requestAnimationFrame(()=>{renderRight(true);syncUI()});return}
     if(drag.type==='sel'||drag.type==='selmove'){const[sx,sy]=v.toSrc(x,y),[px,py]=srcToStage(sx,sy),st=stageC.cv,W=st.width,H=st.height;
       if(drag.type==='selmove'){S.sel={...drag.s0,x:drag.s0.x+(px-drag.p0[0])/W,y:drag.s0.y+(py-drag.p0[1])/H}}
       else{let dx=px-drag.p0[0],dy=py-drag.p0[1];if(e.shiftKey){const m=Math.max(Math.abs(dx),Math.abs(dy));dx=Math.sign(dx||1)*m;dy=Math.sign(dy||1)*m}
@@ -993,9 +1001,13 @@ function bindViewer(v,isH){
     if(drag.type==='crop'){
       if(drag.h==='new'){const x0=clamp(Math.min(drag.sx,sx),0,W),x1=clamp(Math.max(drag.sx,sx),0,W),y0=clamp(Math.min(drag.sy,sy),0,H),y1=clamp(Math.max(drag.sy,sy),0,H);
         S.pending={x:x0/W,y:y0/H,w:(x1-x0)/W,h:(y1-y0)/H}}
-      else{const r=drag.r0,dx=(sx-drag.sx)/W,dy=(sy-drag.sy)/H;let l=r.x,t=r.y,rr=r.x+r.w,b=r.y+r.h;
-        if(drag.h==='move'){l+=dx;rr+=dx;t+=dy;b+=dy}else{if(drag.h.includes('w'))l+=dx;if(drag.h.includes('e'))rr+=dx;if(drag.h.includes('n'))t+=dy;if(drag.h.includes('s'))b+=dy}
-        S.pending={x:Math.min(l,rr),y:Math.min(t,b),w:Math.abs(rr-l),h:Math.abs(b-t)}}
+      else{const g=cropGeo(drag.r0,v.src),t=rad(g.a),cs=Math.cos(t),sn=Math.sin(t),DX=sx-drag.sx,DY=sy-drag.sy;
+        let cx=g.cx,cy=g.cy,w=g.w,h=g.h;
+        if(drag.h==='move'){cx+=DX;cy+=DY}
+        else{const lx=DX*cs+DY*sn,ly=-DX*sn+DY*cs;let l=-w/2,rr=w/2,tp=-h/2,b=h/2;
+          if(drag.h.includes('w'))l+=lx;if(drag.h.includes('e'))rr+=lx;if(drag.h.includes('n'))tp+=ly;if(drag.h.includes('s'))b+=ly;
+          const mx=(l+rr)/2,my=(tp+b)/2;cx+=mx*cs-my*sn;cy+=mx*sn+my*cs;w=Math.abs(rr-l);h=Math.abs(b-tp)}
+        S.pending={x:(cx-w/2)/W,y:(cy-h/2)/H,w:w/W,h:h/H,a:g.a}}
       updateCropBar();v.render()}
     else if(drag.type==='erase'){drag.ex=clamp(sx,0,W);drag.ey=clamp(sy,0,H);v.render()}});
   const end=()=>{if(!drag)return;const d=drag;drag=null;S.dragging=false;el.classList.remove('panning');
@@ -1049,15 +1061,20 @@ function retarget(e,oldT){const newT=e.rot+e.tilt,d=newT-oldT;if(Math.abs(d)<1e-
   if(e.crop){if(isQ){let c=e.crop;for(let i=0;i<((q%4)+4)%4;i++)c=rot90(c);e.crop=c}
     else{const[cx,cy]=tp(e.crop.x+e.crop.w/2,e.crop.y+e.crop.h/2),w=e.crop.w*W0/W1,h=e.crop.h*H0/H1;e.crop={x:cx-w/2,y:cy-h/2,w,h}}}
   // 크롭 중에 키보드(, . S D W A)로 돌려도 크롭 틀이 함께 따라감
-  if(e===S.edits&&S.tool==='crop'&&S.pending){const t={rot:e.rot,tilt:e.tilt,crop:S.pending,erases:[],paints:[],locals:[]};retarget(t,oldT);S.pending=t.crop}}
+  if(e===S.edits&&S.tool==='crop'&&S.pending){const t={rot:e.rot,tilt:e.tilt,crop:S.pending,erases:[],paints:[],locals:[]};retarget(t,oldT);S.pending={...t.crop,a:S.pending.a||0}}}
 function setRot(deg){if(!S.cur)return;commit(e=>{const o=e.rot+e.tilt;e.rot=deg;retarget(e,o)},false)}
 function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100)/100;retarget(e,o)}
-function addTilt(d){if(!S.cur)return;commit(e=>setTilt(e,e.tilt+d))}
+function addTilt(d){if(!S.cur)return;if(S.tool==='crop'&&S.pending){S.pending={...S.pending,a:Math.round(((S.pending.a||0)-d)*100)/100};S.ev.render();return}commit(e=>setTilt(e,e.tilt+d))}
 function setTool(t){if(!S.cur&&t!=='select')return;
   if(t==='crop'){S.pending=S.edits.crop?clone(S.edits.crop):{x:0,y:0,w:1,h:1}}else S.pending=null;
   S.tool=t;S.hover=null;$('#viewH').className='view t-'+t;if(!S.origEdit)$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select');renderRight();syncUI()}
-function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,full=p.x<=0.0005&&p.y<=0.0005&&p.w>=.999&&p.h>=.999;
-  S.pending=null;S.tool='select';$('#viewH').className='view t-select';commit(e=>{e.crop=full?null:p},false)}
+function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;
+  S.pending=null;S.tool='select';$('#viewH').className='view t-select';
+  if(Math.abs(a)<1e-6){const full=p.x<=0.0005&&p.y<=0.0005&&p.w>=.999&&p.h>=.999;commit(e=>{e.crop=full?null:{x:p.x,y:p.y,w:p.w,h:p.h}},false);return}
+  commit(e=>{const m=baseMeta(),oT=e.rot+e.tilt,[W0,H0]=rotDims(m.w,m.h,oT);setTilt(e,e.tilt-a);
+    const nT=e.rot+e.tilt,[W1,H1]=rotDims(m.w,m.h,nT),d=rad(nT-oT),cs=Math.cos(d),sn=Math.sin(d);
+    const x=(p.x+p.w/2)*W0-W0/2,y=(p.y+p.h/2)*H0-H0/2,cx=(x*cs-y*sn+W1/2)/W1,cy=(x*sn+y*cs+H1/2)/H1,w=p.w*W0/W1,h=p.h*H0/H1;
+    e.crop={x:cx-w/2,y:cy-h/2,w,h}},false)}
 function cancelCrop(){S.pending=null;setTool('select')}
 function updateCropBar(){const show=S.tool==='crop'&&S.pending;$('#cropbar').classList.toggle('show',!!show);
   if(show){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt);$('#cropInfo').textContent=`${Math.round(S.pending.w*rw)} × ${Math.round(S.pending.h*rh)} px`}}
