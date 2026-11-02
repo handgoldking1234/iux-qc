@@ -101,6 +101,56 @@ function ScanQCAnalyzeModule(root) {
     const conf = base > 0 ? (bs - base) / base : 0;
     return [Math.round(-best * 100) / 100 || 0, Math.round(conf * 10000) / 10000];
   }
+
+  /* 흰 쐐기(이미지를 돌릴 때 생긴 빈 모서리) 찾기 → 쐐기 경계선의 각도. 없으면 null
+     조건: 테두리에 순백(≥248) 이 어느 정도 있고, 이미지 대부분은 흰색이 아님(사진·회색 배경) */
+  const WHITE = 245;
+  function frameAngle(g, w, h) {
+    let wb = 0, nb = 0, cov = 0;
+    for (let x = 0; x < w; x++) { nb += 2; wb += (g[x] >= 248) + (g[(h - 1) * w + x] >= 248); }
+    for (let y = 0; y < h; y++) { nb += 2; wb += (g[y * w] >= 248) + (g[y * w + w - 1] >= 248); }
+    for (let i = 0; i < g.length; i++) cov += g[i] < WHITE;
+    if (wb / nb < 0.03 || cov / g.length < 0.5) return null;
+    // 흰 영역과 이미지의 경계점 (이미지 테두리 바로 옆은 제외)
+    const pts = [];
+    for (let y = 3; y < h - 3; y++) for (let x = 3; x < w - 3; x++) {
+      const i = y * w + x, m = g[i] < WHITE;
+      if (m && (g[i - 1] >= WHITE || g[i + 1] >= WHITE || g[i - w] >= WHITE || g[i + w] >= WHITE)) pts.push(x, y);
+    }
+    if (pts.length < 160) return null;
+    const step = Math.max(1, Math.floor(pts.length / 2 / 8000)) * 2, P = [];
+    for (let i = 0; i < pts.length; i += step) P.push(pts[i], pts[i + 1]);
+    const off = w + h + 2, hx = new Float64Array(off * 2 + 2), hy = new Float64Array(off * 2 + 2);
+    const score = deg => {
+      const t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t); hx.fill(0); hy.fill(0);
+      for (let i = 0; i < P.length; i += 2) { const x = P[i], y = P[i + 1]; hx[Math.round(x * c - y * s) + off]++; hy[Math.round(x * s + y * c) + off]++; }
+      let r = 0; for (let i = 0; i < hx.length; i++) r += hx[i] * hx[i] + hy[i] * hy[i]; return r;
+    };
+    const base = score(0); let best = 0, bs = base;
+    for (let k = -80; k <= 80; k++) { const a = k * 0.25, v = score(a); if (v > bs) { bs = v; best = a; } }
+    const c0 = best; for (let k = -12; k <= 12; k++) { const a = c0 + k * 0.02, v = score(a); if (v > bs) { bs = v; best = a; } }
+    const conf = base > 0 ? (bs - base) / base : 0;
+    return { a: Math.abs(best) < 0.05 ? 0 : Math.round(best * 100) / 100, conf: Math.round(conf * 10000) / 10000 };
+  }
+  /* 흰 바탕이 하나도 안 들어가는 가장 큰 가로·세로 사각형 (회전 후 이미지 영역은 볼록한 모양) */
+  function maxInnerRect(a, W, H) {
+    const L = new Int32Array(H), Rr = new Int32Array(H);
+    for (let y = 0; y < H; y++) {
+      const o = y * W; let l = 0, r = W - 1;
+      while (l < W && a[o + l] >= WHITE) l++; while (r >= 0 && a[o + r] >= WHITE) r--;
+      L[y] = l; Rr[y] = r;
+    }
+    let best = [0, 0, W, H], ba = 0;
+    for (let t = 0; t < H; t++) {
+      if (Rr[t] - L[t] < 2) continue; let mL = L[t], mR = Rr[t];
+      for (let b = t; b < H; b++) {
+        if (L[b] > mL) mL = L[b]; if (Rr[b] < mR) mR = Rr[b]; if (mR - mL < 2) break;
+        const ar = (b - t + 1) * (mR - mL + 1); if (ar > ba) { ba = ar; best = [mL, t, mR + 1, b + 1]; }
+      }
+    }
+    const d = 2;  // 경계의 흐린 띠까지 확실히 빼기
+    return [best[0] + d, best[1] + d, best[2] - d, best[3] - d];
+  }
   const frac = (b, w, h) => [b[0] / w, b[1] / h, (b[2] - b[0]) / w, (b[3] - b[1]) / h];
   function mean(a, w, h, x0, y0, x1, y1) { let s = 0, n = 0; for (let y = Math.max(0, y0); y < Math.min(h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(w, x1); x++) { s += a[y * w + x]; n++; } return n ? s / n : 0; }
 
@@ -121,15 +171,20 @@ function ScanQCAnalyzeModule(root) {
       levels: [Math.round(pct(H0, g.length, 0.5)), Math.round(pct(H0, g.length, 99.5))], dark, touch };
 
     // 자동 보정안: 기울기 보정 후 다시 측정 (분수 좌표 = 회전된 이미지 기준)
-    const tilt = (Math.abs(skew) >= 0.05 && conf > 0.01) ? skew : 0;
+    // 사진처럼 흰 쐐기(회전 흔적)가 있으면: 쐐기 경계선 각도로 기울기, 쐐기가 하나도 안 남는 가장 큰 사각형으로 크롭
+    const fr = frameAngle(g, w, h);
+    const frame = !!fr;
+    const tilt = frame ? fr.a : ((Math.abs(skew) >= 0.05 && conf > 0.01) ? skew : 0);
+    if (frame) { res.skew = fr.a; res.skew_conf = fr.conf; res.frame = true; }
     const edge = []; for (let x = 0; x < w; x++) edge.push(g[x], g[(h - 1) * w + x]); for (let y = 0; y < h; y++) edge.push(g[y * w], g[y * w + w - 1]);
-    edge.sort((a, b) => a - b); const n2 = edge.length, bg = n2 % 2 ? edge[(n2 - 1) / 2] : Math.floor((edge[n2 / 2 - 1] + edge[n2 / 2]) / 2);
+    edge.sort((a, b) => a - b); const n2 = edge.length, bg = frame ? 255 : (n2 % 2 ? edge[(n2 - 1) / 2] : Math.floor((edge[n2 / 2 - 1] + edge[n2 / 2]) / 2));
     const R = tilt ? rotate(g, w, h, -tilt, true, bg, true) : { a: g, w, h }, a = R.a, W = R.w, H = R.h;
-    const [qb, p2] = paperBox(a, W, H);
-    const cb2 = contentBox(inkMask(a, p2), W, inset(qb, W, H));
-    const fullPaper = (qb[2] - qb[0]) > W * 0.995 && (qb[3] - qb[1]) > H * 0.995;
+    let qb, p2;
+    if (frame) { qb = maxInnerRect(a, W, H); p2 = pct(hist(a), a.length, 50); } else [qb, p2] = paperBox(a, W, H);
+    const cb2 = contentBox(inkMask(a, p2), W, inset(qb, W, H, frame ? 0 : 0.012));
+    const fullPaper = !frame && (qb[2] - qb[0]) > W * 0.995 && (qb[3] - qb[1]) > H * 0.995;
     const px = Math.max(1, Math.floor(W * 0.003)), py = Math.max(1, Math.floor(H * 0.003));
-    const qbi = fullPaper ? qb : [qb[0] + px, qb[1] + py, qb[2] - px, qb[3] - py];
+    const qbi = (fullPaper || frame) ? qb : [qb[0] + px, qb[1] + py, qb[2] - px, qb[3] - py];
     let cropPaper = frac(qbi, W, H);
     if (fullPaper) cropPaper = tilt ? [(W - w) / 2 / W, (H - h) / 2 / H, w / W, h / H] : null;
     const dpi = ((meta.dpi || [300])[0]) || 300;
