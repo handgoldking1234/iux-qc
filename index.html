@@ -336,6 +336,11 @@ a.btn{text-decoration:none}
   .stage-head .title{flex:1 1 calc(100% - 52px)}
   .player{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ---- Tab: 화면만 보기 ---- */
+.app.focus{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;padding:6px!important}
+.app.focus>.lib,.app.focus>.ins,.app.focus>.player,.app.focus .stage-head,.app.focus .scrim{display:none!important}
+.app.focus .panes{padding:0 4px}
 </style>
 </head>
 <body>
@@ -556,7 +561,7 @@ a.btn{text-decoration:none}
     </div>
     <div class="vol">
       <button class="cbtn" id="pFit" data-tip="화면 맞춤 0" data-i="scan"></button>
-      <button class="cbtn" id="pSolo" data-tip="원본 패널 표시 Tab" data-i="columns-2"></button>
+      <button class="cbtn" id="pSolo" data-tip="원본 패널 표시 Shift+Tab" data-i="columns-2"></button>
       <button class="cbtn" id="pMag" data-tip="돋보기 M" data-i="zoom-in"></button>
       <input type="range" id="magZ" min="2" max="10" step="0.5" title="돋보기 배율"><span id="magZTxt">3×</span>
       <button class="cbtn" id="pHelp" data-tip="단축키 ?" data-i="keyboard"></button>
@@ -598,7 +603,8 @@ a.btn{text-decoration:none}
     <div><span>확대·축소 도구 (클릭 확대 · Alt+클릭 축소 · 좌우 드래그)</span><span><kbd>Z</kbd></span></div>
     <div><span>확대 / 축소 / 맞춤 / 100%</span><span><kbd>Ctrl +</kbd><kbd>Ctrl −</kbd><kbd>Ctrl 0</kbd><kbd>Ctrl 1</kbd></span></div>
     <div><span>화면 맞춤 · 휠 확대·축소</span><span><kbd>0</kbd></span></div>
-    <div><span>원본 패널 숨기기</span><span><kbd>Tab</kbd></span></div>
+    <div><span>화면만 크게 (패널 모두 숨기기)</span><span><kbd>Tab</kbd></span></div>
+    <div><span>원본 패널 숨기기</span><span><kbd>Shift</kbd><kbd>Tab</kbd></span></div>
     <div><span>되돌리기 / 다시 실행 / 처음 상태로</span><span><kbd>Ctrl Z</kbd><kbd>Ctrl Y</kbd><kbd>X</kbd></span></div>
   </div>
   <p class="hint" style="font-size:12px">한글 입력 상태에서도 단축키가 동작합니다. 입력칸에 커서가 있을 때는 Esc로 빠져나오세요.</p>
@@ -1407,6 +1413,8 @@ async function exitOrigEdit(apply){if(!S.origEdit)return;
 $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(false);$('#btnODone').onclick=()=>exitOrigEdit(true);
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
+/* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
+function setFocus(on){APP.classList.toggle('focus',on);APP.classList.remove('lib-open','ins-open');if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':''}
 
 /* ======================= 열기: 내 PC 폴더 · 팀 작업 묶음 ======================= */
@@ -1671,7 +1679,7 @@ document.addEventListener('keydown',e=>{
     case'KeyB':S.lastPaint='brush';setTool(S.tool==='brush'?'select':'brush');break;
     case'KeyX':$('#btnReset').click();break;
     case'Digit0':case'Numpad0':vO.fit();vH.fit();break;
-    case'Tab':if(!S.origEdit)setSolo(!S.solo);break;
+    case'Tab':if(sh){if(!S.origEdit)setSolo(!S.solo)}else setFocus(!APP.classList.contains('focus'));break;
     case'KeyO':if(S.origEdit)exitOrigEdit(true);else enterOrigEdit();break;
     case'Slash':$('#mHelp').classList.add('show');break;
     default:hit=false}
