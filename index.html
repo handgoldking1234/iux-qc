@@ -106,10 +106,11 @@ input,select{font:inherit;color:var(--text)}
 
 /* ---------- stage ---------- */
 .stage{background:linear-gradient(180deg,#1b1e26 0,var(--base) 220px)}
-.stage-head{display:flex;align-items:center;gap:16px;padding:16px 20px 12px;min-height:72px}
-.title{flex:1;min-width:0}
-.title h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.title p{margin:2px 0 0;color:var(--sub);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage-head{display:flex;align-items:center;gap:12px;padding:6px 12px 4px;min-height:44px}
+.stage-head .hbtn{height:30px}.stage-head .seg button{height:28px;padding-top:0;padding-bottom:0}
+.title{flex:1;min-width:0;display:flex;align-items:baseline;gap:12px}
+.title h1{margin:0;flex:none;max-width:45%;font-size:18px;font-weight:800;letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title p{margin:0;min-width:0;color:var(--sub);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg{display:inline-flex;background:var(--elev2);border-radius:var(--pill);padding:3px;gap:2px}
 .seg button{height:30px;padding:0 12px;border-radius:var(--pill);display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--sub);transition:.15s}
 .seg button:hover{color:var(--text)}
@@ -119,6 +120,7 @@ kbd{font:600 10px/1 ui-monospace,Consolas,monospace;padding:3px 5px;border-radiu
 .app:not(.loaded) #panes>.toolbar{right:auto;left:22px;top:12px;z-index:6;opacity:.45;pointer-events:none}
 .toolbar{position:absolute;right:8px;top:52px;z-index:4;display:flex;flex-direction:column;gap:2px;padding:5px;background:rgba(24,24,24,.94);border:1px solid #2e2e2e;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .toolbar>i{height:1px;background:#333;margin:4px 4px}
+@media(max-height:860px){.toolbar{top:48px;padding:3px;gap:1px}.toolbar button{width:32px;height:30px}.toolbar>i{margin:2px 4px}.toolbar button:hover::after{right:40px}.pane:has(>.toolbar) .view{margin-right:48px}}
 .toolbar button{position:relative;width:36px;height:36px;border-radius:7px;display:grid;place-items:center;color:var(--sub);transition:.12s}
 .toolbar button:hover{background:var(--hover);color:#fff}
 .toolbar button.on{background:var(--accent);color:#fff}
@@ -330,8 +332,8 @@ a.btn{text-decoration:none}
   .app.lib-open .lib,.app.ins-open .ins{transform:none}
   .app.lib-open .scrim,.app.ins-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55}
   .mbtn{display:inline-grid}
-  .stage-head{padding:10px 10px 8px;gap:8px;min-height:56px;flex-wrap:wrap}
-  .title h1{font-size:18px}.title p{font-size:12px}
+  .stage-head{padding:6px 8px 4px;gap:8px;min-height:44px;flex-wrap:wrap}
+  .title h1{font-size:16px}.title p{font-size:12px}
   .head-actions .hbtn{font-size:0;gap:0;padding:0 8px}
   .panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);padding:0 6px}
   .panes.solo{grid-template-columns:minmax(0,1fr);grid-template-rows:0 minmax(0,1fr)}
