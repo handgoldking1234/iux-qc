@@ -156,7 +156,7 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .keys kbd,.howto kbd{white-space:nowrap}.howto b{color:#fff}.howto kbd{font-size:11px}
 .zmenu{position:fixed;z-index:80;display:none;background:var(--elev2);border-radius:8px;padding:4px;box-shadow:0 12px 32px rgba(0,0,0,.6);min-width:96px}
 .zmenu button{display:block;width:100%;text-align:left;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
-.zmenu button:hover{background:#3e3e3e}
+.zmenu button:hover{background:#3e3e3e}.zmenu button.on{color:var(--accent)}.zmenu .zm-h{padding:4px 10px 6px;font-size:11px;color:var(--mute);font-weight:600;white-space:nowrap}
 .view.t-zoom canvas{cursor:zoom-in}.view.t-zoom.alt canvas{cursor:zoom-out}
 .sub-h{display:flex;align-items:center;font-size:12px;font-weight:700;color:#fff;margin:14px 0 6px}
 .mini-seg{display:inline-flex;background:var(--elev2);border-radius:6px;padding:2px;gap:1px}
@@ -585,7 +585,7 @@ a.btn{text-decoration:none}
         <button class="cbtn" id="pAuto" data-tip="자동 보정 다시 적용 F" data-i="sparkles"></button>
         <button class="cbtn" id="pNext" data-tip="다음 → (자동 저장)" data-i="skip-forward"></button>
         <button class="cbtn" id="pPlay" data-tip="자동 넘김 N · 확인·저장하며 넘김" data-i="play"></button>
-        <button class="cbtn csec" id="pSec" data-tip="자동 넘김 간격 (누를 때마다 바뀜)">3초</button>
+        <button class="cbtn csec" id="pSec" data-tip="자동 넘김 간격 선택">3초</button>
       </div>
       <div class="prog"><span id="pCur">0</span><input type="range" id="pBar" min="1" max="1" value="1"><span id="pTot">0</span></div>
     </div>
@@ -991,9 +991,9 @@ for(const[v,id]of[[vO,'#zbO'],[vH,'#zbH']]){const bar=$(id);
     if(z==='in')stepPct(v,1);else if(z==='out')stepPct(v,-1);else if(z==='fit')v.fit();else if(z==='100')v.setPct(100);
     else if(z==='menu'){const m=$('#zmenu'),r=b.getBoundingClientRect();
       m.innerHTML=[3200,1600,800,400,200,100,66.67,50,33.33,25,12.5,6.25].map(p=>`<button data-p="${p}">${fmtPct(p)}</button>`).join('')+'<button data-p="fit">화면 맞춤</button>';
-      m.style.display='block';m.style.left=Math.min(r.left,innerWidth-110)+'px';m.style.top=(r.top-m.offsetHeight-6<8?Math.min(r.bottom+6,innerHeight-m.offsetHeight-8):r.top-m.offsetHeight-6)+'px';m.style.left=Math.min(r.left,innerWidth-m.offsetWidth-8)+'px';
+      m.dataset.for='zoom';m.style.display='block';m.style.left=Math.min(r.left,innerWidth-110)+'px';m.style.top=(r.top-m.offsetHeight-6<8?Math.min(r.bottom+6,innerHeight-m.offsetHeight-8):r.top-m.offsetHeight-6)+'px';m.style.left=Math.min(r.left,innerWidth-m.offsetWidth-8)+'px';
       m.onclick=ev=>{const t=ev.target.closest('[data-p]');if(!t)return;t.dataset.p==='fit'?v.fit():v.setPct(+t.dataset.p);m.style.display='none'}}}}
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('#zmenu,.zpct'))$('#zmenu').style.display='none'});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#zmenu,.zpct,#pSec'))$('#zmenu').style.display='none'});
 /* 미리보기 해상도보다 크게 확대하면 원본 해상도 이미지를 불러와 교체 (100% 이상도 선명하게) */
 function maybeHQ(v){if(!S.cur||S.cur.hq||!v.src)return;if(v.scale*(devicePixelRatio||1)>1.05)loadHQ()}
 async function loadHQ(){const cur=S.cur;if(!cur||cur.hq)return;cur.hq='loading';const f=cur.name,inf=cur.info;
@@ -1416,7 +1416,7 @@ async function go(i){
   finally{if(seq===S.loadSeq)setLoading(false)}}
 
 /* 자동 넘김: 화면에 다 뜬 뒤 정한 초만큼 보여 주고 확인·저장 → 다음. 확인이 필요한 파일·마지막 파일에서 멈춤, 아무 키·클릭이면 멈춤 */
-const AUTO_SECS=[1,2,3,5,8];
+const AUTO_SECS=[1,2,3,5,8,10,15];
 function secTxt(){$('#pSec').textContent=(+S.cfg.auto_sec||3)+'초'}
 function setAutoPlay(on,msg){S.auto=!!on;clearTimeout(S.autoT);S.autoK=null;const b=$('#pPlay');b.classList.toggle('on',S.auto);b.innerHTML=ic(S.auto?'pause':'play',18);
   if(S.auto){if(!S.cur){S.auto=false;b.classList.remove('on');b.innerHTML=ic('play',18);return}S.autoLast=-1;autoLoop()}
@@ -1428,7 +1428,7 @@ function autoLoop(){if(!S.auto)return;S.autoT=setTimeout(autoLoop,150);
   if(Date.now()-S.autoAt<(+S.cfg.auto_sec||3)*1000)return;
   if(qcList().some(q=>q.level!=='info')){setAutoPlay(false,'확인이 필요한 파일이라 멈췄어요 · '+S.cur.name);return}
   const last=S.idx+1>=S.files.length;S.autoLast=S.idx;saveNext();if(last)setAutoPlay(false,'마지막 파일까지 자동 넘김을 마쳤어요')}
-addEventListener('pointerdown',e=>{if(S.auto&&!e.target.closest('#pPlay,#pSec'))setAutoPlay(false)},true);
+addEventListener('pointerdown',e=>{if(S.auto&&!e.target.closest('#pPlay,#pSec,#zmenu'))setAutoPlay(false)},true);
 addEventListener('wheel',()=>{if(S.auto)setAutoPlay(false)},{capture:true,passive:true});
 function nextFrom(i){if(i+1<S.files.length)go(i+1);else toast('마지막 파일입니다 · 수고하셨어요','ok',3500)}
 const REVIEWED=['auto','ok','edited','copied','saving'];
@@ -1743,7 +1743,12 @@ $('#pBar').onchange=e=>jumpTo(+e.target.value-1);
 $('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pSolo').onclick=()=>setSolo(!S.solo);
 $('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
 $('#pPlay').onclick=()=>setAutoPlay(!S.auto);
-$('#pSec').onclick=async()=>{const c=+S.cfg.auto_sec||3,n=AUTO_SECS[(AUTO_SECS.indexOf(c)+1)%AUTO_SECS.length];S.cfg.auto_sec=n;secTxt();try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)};
+$('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.dataset.for==='sec'){m.style.display='none';return}
+  const c=+S.cfg.auto_sec||3,r=$('#pSec').getBoundingClientRect();m.dataset.for='sec';
+  m.innerHTML='<div class="zm-h">자동 넘김 간격</div>'+AUTO_SECS.map(n=>`<button data-s="${n}" class="${n===c?'on':''}">${n}초</button>`).join('');
+  m.style.display='block';m.style.left=Math.min(r.left+r.width/2-m.offsetWidth/2,innerWidth-m.offsetWidth-8)+'px';m.style.top=(r.top-m.offsetHeight-8)+'px';
+  m.onclick=async ev=>{const t=ev.target.closest('[data-s]');if(!t)return;const n=+t.dataset.s;m.style.display='none';S.cfg.auto_sec=n;secTxt();
+    try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)}};
 $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.value);
 $('#pHelp').onclick=()=>$('#mHelp').classList.add('show');
 $('#btnSettings').onclick=()=>{$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
