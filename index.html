@@ -1303,7 +1303,7 @@ function syncUI(){try{secTxt()}catch(e){}
   $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool));
 
   $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');
-  setRange($('#trim'),Math.min(20,S.cfg.trim_px??5));$('#trimN').value=S.cfg.trim_px??5;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??5}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
+  setRange($('#trim'),Math.min(20,S.cfg.trim_px??2));$('#trimN').value=S.cfg.trim_px??2;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??2}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
   syncBrush();
   if(!has)return;
   const e=S.edits,bs=baseSide();
@@ -1697,7 +1697,7 @@ const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit
   await api.post('/api/settings',{trim_px:v,trim_unit:S.cfg.trim_unit||'px'}).catch(()=>{});if(!S.cur)return;const info=await api.get('/api/info?name='+enc(S.cur.name)).catch(()=>null);
   if(!info||!S.cur||info.name!==S.cur.name)return;S.cur.info=info;S.autoEd=info.orig?autoEdits('orig'):null;
   if(pristine&&S.autoEd){S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false)}renderQC();syncUI()},350)};
-$('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??5,b.dataset.v)};
+$('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??2,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
 $('#btnAutoOrig').onclick=()=>autoFrom('orig');$('#pAuto').onclick=()=>autoFrom('orig');
 $('#btnPaste').onclick=pastePrev;
