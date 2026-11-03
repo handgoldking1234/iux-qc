@@ -148,6 +148,12 @@ details.sec[open] .chev{transform:rotate(90deg)}
 #hO,#hH{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:620px){.pane-head .zoombar [data-z="100"],.pane-head .zoombar i{display:none}}
 @container (max-width:470px){#hO,#hH{display:none}#btnOEdit{font-size:0;gap:0;padding:0 7px}}
+.help-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;margin-right:6px;border-radius:14px;background:var(--elev2);color:var(--sub);font-size:12px;font-weight:700;transition:.15s}
+.help-btn:hover{background:#333;color:#fff}
+.ins-closed .help-btn,.ins-closed .ins-head>span{display:none}
+.howto{background:rgba(255,255,255,.05);border-radius:10px;padding:12px 16px;margin-bottom:12px}
+.howto h4{margin:0 0 8px}.howto ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:var(--sub)}
+.keys kbd,.howto kbd{white-space:nowrap}.howto b{color:#fff}.howto kbd{font-size:11px}
 .zmenu{position:fixed;z-index:80;display:none;background:var(--elev2);border-radius:8px;padding:4px;box-shadow:0 12px 32px rgba(0,0,0,.6);min-width:96px}
 .zmenu button{display:block;width:100%;text-align:left;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
 .zmenu button:hover{background:#3e3e3e}
@@ -476,7 +482,7 @@ a.btn{text-decoration:none}
 
   <!-- Inspector -->
   <aside class="panel ins">
-    <div class="ins-head"><h2>보정</h2><button class="icon-btn" id="btnIns" title="보정 패널 접기" data-i="panel-right"></button></div>
+    <div class="ins-head"><h2>보정</h2><span style="flex:1"></span><button class="help-btn" id="btnHelp" title="단축키·사용법 (/)"><span data-i="keyboard" data-s="14"></span>단축키·사용법</button><button class="icon-btn" id="btnIns" title="보정 패널 접기" data-i="panel-right"></button></div>
     <div class="ins-body">
       <div class="sec" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
@@ -598,7 +604,18 @@ a.btn{text-decoration:none}
 <div class="zmenu" id="zmenu"></div>
 
 <div class="modal-bg" id="mHelp"><div class="modal">
-  <h3>단축키 <button class="icon-btn" data-close data-i="x"></button></h3>
+  <h3>단축키 · 사용법 <button class="icon-btn" data-close data-i="x"></button></h3>
+  <div class="howto">
+    <h4>이렇게 쓰세요</h4>
+    <ol>
+      <li><b>폴더 지정</b> — 왼쪽 위에 원본 폴더와 보정본(HP) 폴더를 넣고 <b>불러오기</b></li>
+      <li><b>자동 보정 확인</b> — 오른쪽 보정본에 가장자리(최대 5px)가 정리된 결과가 보여요. 이상 없으면 <kbd>Space</kbd> → 저장하고 다음 장</li>
+      <li><b>필요한 장만 고치기</b> — 회전 <kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd>, 기울기 <kbd>,</kbd><kbd>.</kbd>, 크롭 <kbd>C</kbd>, 잡티 힐링 <kbd>J</kbd> 등 → <kbd>Space</kbd></li>
+      <li><b>보정이 어려우면</b> <kbd>Q</kbd> — 원본을 그대로 보정본으로 저장</li>
+      <li><b>많이 넘길 때</b> <kbd>N</kbd> 자동 넘김 — 정한 초마다 확인·저장 (아래 <kbd>3초</kbd> 버튼으로 간격 변경, 아무 키·클릭이면 멈춤)</li>
+      <li><b>넓게 보기</b> <kbd>Tab</kbd> — 양쪽 패널을 숨기고 이미지만 크게</li>
+    </ol>
+  </div>
   <div class="keys">
     <h4>검수 진행</h4>
     <div><span>자동 보정 확인(저장) + 다음</span><span><kbd>Space</kbd></span></div>
@@ -612,7 +629,7 @@ a.btn{text-decoration:none}
     <div><span>자동 보정 다시 적용 / 보정본 정리</span><span><kbd>F</kbd><kbd>Shift F</kbd></span></div>
     <div><span>자유 회전 (드래그 · Shift=1°)</span><span><kbd>T</kbd></span></div>
     <div><span>원본 수정 시작 / 완료</span><span><kbd>O</kbd></span></div>
-    <h4>크롭 · 지우개 · 브러시</h4>
+    <h4>도구</h4>
     <div><span>사각형 선택 / 원형 선택 (마퀴)</span><span><kbd>L</kbd><kbd>U</kbd></span></div>
     <div><span>다각형 올가미 (Enter 닫기 · Backspace 점 취소)</span><span><kbd>Y</kbd></span></div>
     <div><span>페인트통</span><span><kbd>G</kbd></span></div>
@@ -1721,6 +1738,7 @@ $('#pSave').onclick=saveNext;$('#pPrev').onclick=prev;$('#pNext').onclick=skip;
 $('#pBar').oninput=e=>{setRange(e.target,+e.target.value);$('#pCur').textContent=e.target.value};
 $('#pBar').onchange=e=>jumpTo(+e.target.value-1);
 $('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pSolo').onclick=()=>setSolo(!S.solo);
+$('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
 $('#pPlay').onclick=()=>setAutoPlay(!S.auto);
 $('#pSec').onclick=async()=>{const c=+S.cfg.auto_sec||3,n=AUTO_SECS[(AUTO_SECS.indexOf(c)+1)%AUTO_SECS.length];S.cfg.auto_sec=n;secTxt();try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)};
 $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.value);
