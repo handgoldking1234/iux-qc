@@ -35,7 +35,7 @@ input,select{font:inherit;color:var(--text)}
 .panel{background:var(--base);border-radius:var(--r);min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
 /* ---------- library ---------- */
-.lib-head{display:flex;align-items:center;gap:10px;padding:16px 16px 10px}
+.lib-head{display:flex;align-items:center;gap:10px;height:60px;padding:0 16px;box-sizing:border-box}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.2px;flex:1;min-width:0}
 .logo-mark{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
 .logo small{display:block;color:var(--sub);font-weight:500;font-size:11px;letter-spacing:0}
@@ -100,13 +100,13 @@ input,select{font:inherit;color:var(--text)}
 @keyframes eq{0%,100%{height:3px}50%{height:14px}}
 .empty-list{padding:24px 16px;color:var(--sub);font-size:13px;text-align:center}
 .lib-closed .folders,.lib-closed .stats,.lib-closed .chips,.lib-closed .search,.lib-closed .logo div,.lib-closed .lib-head .icon-btn:not(#btnLib){display:none}
-.lib-closed .lib-head{flex-direction:column}
+.lib-closed .lib-head{flex-direction:column;height:auto;padding:16px 8px 10px}
 .lib-closed .row{grid-template-columns:1fr;justify-items:center}
 .lib-closed .row .nm,.lib-closed .row .st{display:none}
 
 /* ---------- stage ---------- */
 .stage{background:linear-gradient(180deg,#1b1e26 0,var(--base) 220px)}
-.stage-head{display:flex;align-items:center;gap:12px;padding:12px 18px 10px;min-height:56px}
+.stage-head{display:flex;align-items:center;gap:12px;height:60px;padding:0 18px;box-sizing:border-box;flex:none}
 .stage-head .hbtn{height:30px}.stage-head .seg button{height:28px;padding-top:0;padding-bottom:0}
 .title{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .title h1{margin:0;font-size:17px;line-height:1.25;font-weight:800;letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -148,6 +148,7 @@ details.sec[open] .chev{transform:rotate(90deg)}
 #hO,#hH{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:620px){.pane-head .zoombar [data-z="100"],.pane-head .zoombar i{display:none}}
 @container (max-width:470px){#hO,#hH{display:none}#btnOEdit{font-size:0;gap:0;padding:0 7px}}
+.trim-unit{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;font-size:11px;color:var(--mute)}.trim-unit span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .help-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;margin-right:6px;border-radius:14px;background:var(--elev2);color:var(--sub);font-size:12px;font-weight:700;transition:.15s}
 .help-btn:hover{background:#333;color:#fff}
 .ins-closed .help-btn,.ins-closed .ins-head>span{display:none}
@@ -224,7 +225,7 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .welcome ol{text-align:left;display:inline-block;margin:12px 0 0;padding-left:18px;line-height:1.9;font-size:13px}
 
 /* ---------- inspector ---------- */
-.ins-head{display:flex;align-items:center;gap:8px;padding:16px 16px 8px}
+.ins-head{display:flex;align-items:center;gap:8px;height:60px;padding:0 16px;box-sizing:border-box}
 .ins-head h2{flex:1;margin:0;font-size:16px;font-weight:800}
 .ins-body{flex:1;overflow-y:auto;padding:0 8px 12px}
 .sec{background:var(--card);border-radius:var(--r);padding:12px;margin-bottom:8px}
@@ -321,7 +322,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 /* ---- 패널 접기 · 반응형 ---- */
 .app.ins-closed{--insw:56px}
 .ins-closed .ins-body{display:none}
-.ins-closed .ins-head{flex-direction:column;padding:16px 8px 8px}
+.ins-closed .ins-head{flex-direction:column;height:auto;padding:16px 8px 8px}
 .ins-closed .ins-head h2{display:none}
 .mbtn,.scrim{display:none}
 a.btn{text-decoration:none}
@@ -338,7 +339,7 @@ a.btn{text-decoration:none}
   .app.lib-open .lib,.app.ins-open .ins{transform:none}
   .app.lib-open .scrim,.app.ins-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55}
   .mbtn{display:inline-grid}
-  .stage-head{padding:6px 8px 4px;gap:8px;min-height:44px;flex-wrap:wrap}
+  .stage-head{padding:6px 8px 4px;gap:8px;height:auto;min-height:44px;flex-wrap:wrap}
   .title h1{font-size:16px}.title p{font-size:12px}
   .head-actions .hbtn{font-size:0;gap:0;padding:0 8px}
   .panes{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);padding:0 6px}
@@ -490,8 +491,8 @@ a.btn{text-decoration:none}
       <div class="sec" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
           <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span></div>
-        <div class="sl" id="trimRow" title="상하좌우 가장자리의 검은·흰 줄만 이 값(px)까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
-        <b id="trimTxt" hidden>5</b>
+        <div class="sl" id="trimRow" title="상하좌우 가장자리의 테두리 선·검은 띠·흰 줄만 이 값까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
+        <div class="trim-unit"><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
         <div class="grid2 mt8">
           <button class="btn btn-white btn-sm" id="btnAutoOrig" title="원본에서 자동 보정 다시 적용 (F)">다시 적용 F</button>
           <button class="btn btn-dark btn-sm" id="btnPaste" title="직전에 수정한 보정을 그대로 (V)">이전 보정 V</button>
@@ -956,7 +957,7 @@ class Viewer{
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
   resize(){const r=this.el.getBoundingClientRect(),d=devicePixelRatio||1;this.w=r.width;this.h=r.height;this.dpr=d;
     this.cv.width=Math.max(1,Math.round(r.width*d));this.cv.height=Math.max(1,Math.round(r.height*d));this.render();const o=this.pair&&this.pair();if(o&&o.src)o.render()}
-  get rawFit(){if(!this.src)return 1;const f=APP.classList.contains('focus'),mx=f?40:72,my=f?56:110;return Math.min(Math.max(40,this.w-mx)/this.src.width,Math.max(40,this.h-my)/this.src.height)}
+  get rawFit(){if(!this.src)return 1;/* 상하·좌우 같은 여백 (세로·가로 문서 모두 테두리에서 같은 거리) */const f=APP.classList.contains('focus'),g=Math.max(f?20:36,Math.min(this.w,this.h)*(f?.045:.07)),mx=2*g,my=2*g;return Math.min(Math.max(40,this.w-mx)/this.src.width,Math.max(40,this.h-my)/this.src.height)}
   /* 원본·보정본을 같은 배율로 맞춤: 두 화면 중 더 좁은 쪽 기준 (화면 크기가 달라도 같은 크기로 보임) */
   get fitS(){const r=this.rawFit;if(!this.src)return r;const o=this.pair&&this.pair();if(!o||!o.src||o.w<60||o.h<60||!this.kFn||!o.kFn)return r;
     const k=this.kFn(),ko=o.kFn();if(!(k>0&&ko>0))return r;return Math.min(r,o.rawFit*ko/k)}
@@ -1302,7 +1303,7 @@ function syncUI(){try{secTxt()}catch(e){}
   $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool));
 
   $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');
-  setRange($('#trim'),Math.min(20,S.cfg.trim_px??5));$('#trimN').value=S.cfg.trim_px??5;$('#trimTxt').textContent=S.cfg.trim_px??5;
+  setRange($('#trim'),Math.min(20,S.cfg.trim_px??5));$('#trimN').value=S.cfg.trim_px??5;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??5}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
   syncBrush();
   if(!has)return;
   const e=S.edits,bs=baseSide();
@@ -1692,10 +1693,11 @@ $('#segBase').onclick=e=>{const b=e.target.closest('button');if(b)toggleBase(b.d
 $('#swOnLoad').onclick=()=>{S.cfg.on_load=S.cfg.on_load==='hp'?'auto':'hp';api.post('/api/settings',{on_load:S.cfg.on_load}).catch(()=>{});syncUI();
   toast(S.cfg.on_load==='hp'?'다음 파일부터 보정본 파일을 그대로 보여 줘요':'다음 파일부터 원본에서 자동 보정해요');if(S.idx>=0&&!dirty()){delete S.memo[S.cur.name];go(S.idx)}};
 /* 가장자리 정리 최대 px: 바꾸면 지금 파일도 (손대기 전이면) 다시 계산 */
-const setTrim=v=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;syncUI();clearTimeout(setTrim.t);setTrim.t=setTimeout(async()=>{const pristine=isAuto();
-  await api.post('/api/settings',{trim_px:v}).catch(()=>{});if(!S.cur)return;const info=await api.get('/api/info?name='+enc(S.cur.name)).catch(()=>null);
+const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit)S.cfg.trim_unit=unit;syncUI();clearTimeout(setTrim.t);setTrim.t=setTimeout(async()=>{const pristine=isAuto();
+  await api.post('/api/settings',{trim_px:v,trim_unit:S.cfg.trim_unit||'px'}).catch(()=>{});if(!S.cur)return;const info=await api.get('/api/info?name='+enc(S.cur.name)).catch(()=>null);
   if(!info||!S.cur||info.name!==S.cur.name)return;S.cur.info=info;S.autoEd=info.orig?autoEdits('orig'):null;
   if(pristine&&S.autoEd){S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false)}renderQC();syncUI()},350)};
+$('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??5,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
 $('#btnAutoOrig').onclick=()=>autoFrom('orig');$('#pAuto').onclick=()=>autoFrom('orig');
 $('#btnPaste').onclick=pastePrev;

@@ -4,7 +4,7 @@
    - 사용 통계: 폴더·파일 이름과 처리 건수만 기록 (관리자 페이지에서 확인) */
 (function () {
   'use strict';
-  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 5, auto_sec: 3 };
+  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 5, trim_unit: 'px', auto_sec: 3 };
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } },
@@ -357,30 +357,34 @@
     const o = mk(w, h), x = o.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cv, 0, 0, w, h); return o;
   }
   /* 가장자리 줄 통계 (원본 해상도): 바깥쪽부터 40줄의 평균 밝기와 아주 어둡거나 하얀 점의 비율 */
+  /* 가장자리 띠 (원본 해상도): 바깥쪽부터 최대 260줄의 밝기를 그대로 보관 → 설정(px/mm)이 바뀌어도 다시 디코딩 안 함 */
   function edgeStats(cv) {
-    const W = cv.width, H = cv.height, D = Math.max(1, Math.min(40, Math.floor(Math.min(W, H) / 4))), x = cv.getContext('2d', { willReadFrequently: true });
-    const line = (d, w, h, horiz, rev) => {
-      const m = [], f = [], n = horiz ? h : w, len = horiz ? w : h;
-      for (let k = 0; k < n; k++) {
-        const q = rev ? n - 1 - k : k; let s = 0, e = 0;
-        for (let t = 0; t < len; t++) { const i = (horiz ? q * w + t : t * w + q) * 4, v = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000; s += v; if (v < 40 || v > 250) e++; }
-        m.push(s / len); f.push(e / len);
-      }
-      return { m, f };
+    const W = cv.width, H = cv.height, D = Math.max(1, Math.min(260, Math.floor(Math.min(W, H) / 4))), x = cv.getContext('2d', { willReadFrequently: true });
+    const strip = (d, w, h, horiz, rev) => {
+      const n = horiz ? h : w, len = horiz ? w : h, a = new Uint8Array(n * len);
+      for (let k = 0; k < n; k++) { const q = rev ? n - 1 - k : k;
+        for (let t = 0; t < len; t++) { const i = (horiz ? q * w + t : t * w + q) * 4; a[k * len + t] = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 + .5 } }
+      return { D: n, len, a };
     };
-    return { t: line(x.getImageData(0, 0, W, D).data, W, D, true, false), b: line(x.getImageData(0, H - D, W, D).data, W, D, true, true),
-      l: line(x.getImageData(0, 0, D, H).data, D, H, false, false), r: line(x.getImageData(W - D, 0, D, H).data, D, H, false, true) };
+    return { t: strip(x.getImageData(0, 0, W, D).data, W, D, true, false), b: strip(x.getImageData(0, H - D, W, D).data, W, D, true, true),
+      l: strip(x.getImageData(0, 0, D, H).data, D, H, false, false), r: strip(x.getImageData(W - D, 0, D, H).data, D, H, false, true) };
   }
-  /* 테두리 줄(스캔 그림자·검은 띠·흰 빈 모서리)만 골라 최대 maxPx 까지 */
+  /* 테두리(검은 띠·그림자·선·흰 빈 줄)만 골라 최대 maxPx 까지: 안쪽 종이 밝기와 다른 줄 중 가장 바깥에서 먼 것까지 자름 */
   function trimFrom(st, maxPx) {
     const o = { l: 0, t: 0, r: 0, b: 0 }; if (!st || !(maxPx > 0)) return o;
-    const med = a => { const b = [...a].sort((x, y) => x - y); return b.length ? b[b.length >> 1] : 0; };
     for (const k of ['l', 't', 'r', 'b']) {
-      const s = st[k], mx = Math.min(maxPx, s.m.length - 5); if (mx <= 0) continue;
-      const ref = med(s.m.slice(mx)), refF = med(s.f.slice(mx));
-      for (let i = 0; i < mx; i++) if (Math.abs(s.m[i] - ref) > 45 || (s.f[i] > 0.25 && s.f[i] > refF + 0.2)) o[k] = i + 1;
+      const s = st[k]; if (!s || !s.a) continue; const { D, len, a } = s, mx = Math.min(Math.round(maxPx), D - 8); if (mx <= 0) continue;
+      const mean = i => { let v = 0; for (let t = i * len, e = t + len; t < e; t++) v += a[t]; return v / len };
+      const inner = []; for (let i = mx; i < Math.min(D, mx + 30); i++) inner.push(mean(i)); inner.sort((p, q) => p - q);
+      const ref = inner[inner.length >> 1];
+      for (let i = 0; i < mx; i++) { let dev = 0; for (let t = i * len, e = t + len; t < e; t++) if (Math.abs(a[t] - ref) > 50) dev++;
+        if (Math.abs(mean(i) - ref) > 40 || dev / len > 0.25) o[k] = i + 1 }
     }
     return o;
+  }
+  function trimMax(cfg, meta) {
+    const v = +cfg.trim_px || 0; if (cfg.trim_unit !== 'mm') return v;
+    const dpi = (meta && meta.dpi && +meta.dpi[0]) || 300; return Math.round(v * dpi / 25.4);
   }
   function summary(e) {
     if (!e) return null;
@@ -442,7 +446,7 @@
       const out = { name, hp: null, orig: null };
       for (const side of ['hp', 'orig']) if (f.has(side)) {
         const d = await this.decoded(name, side), an = await this.analysis(name, side, d);
-        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, +this.cfg.trim_px || 0) };
+        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, trimMax(this.cfg, d.meta)) };
       }
       out.qc = Analyze.qc(out.hp, out.orig, this.cfg);
       out.status = f.status; out.backup = await this.src.hasBackup(name);
