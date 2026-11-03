@@ -360,6 +360,9 @@ a.btn{text-decoration:none}
 .app.focus>.player{display:grid!important;grid-template-columns:minmax(160px,22%) 1fr minmax(160px,22%)}
 .app.focus>.lib,.app.focus>.ins,.app.focus .stage-head,.app.focus .scrim{display:none!important}
 .app.focus .panes{padding:0 4px}
+/* Tab: '이상 없음' 줄은 숨김 (경고가 있을 때만 작게 표시) */
+.app.focus .qc:has(.qc-ok),.app.focus .qc:empty{display:none}
+.app.focus .qc{min-height:0;padding:6px 8px}
 </style>
 </head>
 <body>
