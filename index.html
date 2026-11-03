@@ -952,8 +952,11 @@ class Viewer{
   constructor(el){this.el=el;this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
   resize(){const r=this.el.getBoundingClientRect(),d=devicePixelRatio||1;this.w=r.width;this.h=r.height;this.dpr=d;
-    this.cv.width=Math.max(1,Math.round(r.width*d));this.cv.height=Math.max(1,Math.round(r.height*d));this.render()}
-  get fitS(){if(!this.src)return 1;const m=APP.classList.contains('focus')?12:24;return Math.min((this.w-m)/this.src.width,(this.h-m)/this.src.height)}
+    this.cv.width=Math.max(1,Math.round(r.width*d));this.cv.height=Math.max(1,Math.round(r.height*d));this.render();const o=this.pair&&this.pair();if(o&&o.src)o.render()}
+  get rawFit(){if(!this.src)return 1;const m=APP.classList.contains('focus')?12:24;return Math.min((this.w-m)/this.src.width,(this.h-m)/this.src.height)}
+  /* 원본·보정본을 같은 배율로 맞춤: 두 화면 중 더 좁은 쪽 기준 (화면 크기가 달라도 같은 크기로 보임) */
+  get fitS(){const r=this.rawFit;if(!this.src)return r;const o=this.pair&&this.pair();if(!o||!o.src||o.w<60||o.h<60||!this.kFn||!o.kFn)return r;
+    const k=this.kFn(),ko=o.kFn();if(!(k>0&&ko>0))return r;return Math.min(r,o.rawFit*ko/k)}
   get scale(){return this.fitS*this.zoom}
   /* 화면 1픽셀당 원본 해상도 픽셀 기준 배율(%) — 포토샵과 같은 의미 */
   get pct(){return this.src?this.scale*(this.kFn?this.kFn():1)*(devicePixelRatio||1)*100:100}
@@ -965,7 +968,7 @@ class Viewer{
   toSrc(x,y){const s=this.scale,[ox,oy]=this.origin;return[(x-ox)/s,(y-oy)/s]}
   toScr(x,y){const s=this.scale,[ox,oy]=this.origin;return[ox+x*s,oy+y*s]}
   setSrc(src,keep){const same=keep&&this.src&&src&&Math.abs(this.src.width/this.src.height-src.width/src.height)<.002;
-    this.src=src;if(!same){this.zoom=1;this.px=this.py=0}this.render()}
+    this.src=src;if(!same){this.zoom=1;this.px=this.py=0}this.render();const o=this.pair&&this.pair();if(o&&o.src)o.render()}
   fit(){this.zoom=1;this.px=this.py=0;this.render()}
   zoomAt(f,x,y){this.setPct(this.pct*f,x,y)}
   render(){const c=this.ctx,d=this.dpr;c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,this.w,this.h);if(!this.src)return;
@@ -975,7 +978,7 @@ class Viewer{
     if(this.overlay)this.overlay(c,this);if(this.onZoom)this.onZoom(this)}
 }
 $('#paneO .pane-head').insertBefore($('#zbO'),$('#btnOEdit'));$('#paneH .pane-head').appendChild($('#zbH'));
-const vO=new Viewer($('#viewO')),vH=new Viewer($('#viewH'));S.ev=vH;
+const vO=new Viewer($('#viewO')),vH=new Viewer($('#viewH'));vO.pair=()=>vH;vH.pair=()=>vO;S.ev=vH;
 /* 화면 이미지 1픽셀 = 원본 몇 픽셀인지 (미리보기 해상도 보정) */
 vH.kFn=()=>{try{return S.cur&&stageC.cv?stageK():1}catch(e){return 1}};
 vO.kFn=()=>{try{if(!S.cur||!vO.src)return 1;if(S.origEdit)return stageK();const p=preOf(),m=p?preMeta(p):S.cur.info.orig.meta;return vO.src.width/m.w}catch(e){return 1}};
