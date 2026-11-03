@@ -481,8 +481,8 @@ a.btn{text-decoration:none}
       <div class="sec" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
           <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span></div>
-        <div class="sl" id="trimRow"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
-        <p class="hint" style="margin:0 2px 6px">상하좌우 가장자리의 검은·흰 줄만 최대 <b id="trimTxt">5</b>px까지 잘라요 · 회전은 하지 않아요</p>
+        <div class="sl" id="trimRow" title="상하좌우 가장자리의 검은·흰 줄만 이 값(px)까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
+        <b id="trimTxt" hidden>5</b>
         <div class="grid2 mt8">
           <button class="btn btn-white btn-sm" id="btnAutoOrig" title="원본에서 자동 보정 다시 적용 (F)">다시 적용 F</button>
           <button class="btn btn-dark btn-sm" id="btnPaste" title="직전에 수정한 보정을 그대로 (V)">이전 보정 V</button>
