@@ -349,8 +349,10 @@ a.btn{text-decoration:none}
 }
 
 /* ---- Tab: 화면만 보기 ---- */
-.app.focus{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;padding:6px!important}
-.app.focus>.lib,.app.focus>.ins,.app.focus>.player,.app.focus .stage-head,.app.focus .scrim{display:none!important}
+.app.focus{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 64px!important;padding:6px 6px 0!important;gap:4px!important}
+/* Tab 화면만 보기: 재생 막대(이전·원본복사·확인·자동보정·다음·자동넘김·진행)는 남김 */
+.app.focus>.player{display:grid!important;grid-template-columns:minmax(160px,22%) 1fr minmax(160px,22%)}
+.app.focus>.lib,.app.focus>.ins,.app.focus .stage-head,.app.focus .scrim{display:none!important}
 .app.focus .panes{padding:0 4px}
 </style>
 </head>
