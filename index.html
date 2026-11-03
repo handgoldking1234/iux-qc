@@ -956,7 +956,7 @@ class Viewer{
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
   resize(){const r=this.el.getBoundingClientRect(),d=devicePixelRatio||1;this.w=r.width;this.h=r.height;this.dpr=d;
     this.cv.width=Math.max(1,Math.round(r.width*d));this.cv.height=Math.max(1,Math.round(r.height*d));this.render();const o=this.pair&&this.pair();if(o&&o.src)o.render()}
-  get rawFit(){if(!this.src)return 1;const m=APP.classList.contains('focus')?28:56;return Math.min((this.w-m)/this.src.width,(this.h-m)/this.src.height)}
+  get rawFit(){if(!this.src)return 1;const f=APP.classList.contains('focus'),mx=f?40:72,my=f?56:110;return Math.min(Math.max(40,this.w-mx)/this.src.width,Math.max(40,this.h-my)/this.src.height)}
   /* 원본·보정본을 같은 배율로 맞춤: 두 화면 중 더 좁은 쪽 기준 (화면 크기가 달라도 같은 크기로 보임) */
   get fitS(){const r=this.rawFit;if(!this.src)return r;const o=this.pair&&this.pair();if(!o||!o.src||o.w<60||o.h<60||!this.kFn||!o.kFn)return r;
     const k=this.kFn(),ko=o.kFn();if(!(k>0&&ko>0))return r;return Math.min(r,o.rawFit*ko/k)}
