@@ -4,7 +4,7 @@
    - 사용 통계: 폴더·파일 이름과 처리 건수만 기록 (관리자 페이지에서 확인) */
 (function () {
   'use strict';
-  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto' };
+  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 5, auto_sec: 3 };
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } },
@@ -356,6 +356,32 @@
     if (s < 1) return shrinkTo(cv, w, h);
     const o = mk(w, h), x = o.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cv, 0, 0, w, h); return o;
   }
+  /* 가장자리 줄 통계 (원본 해상도): 바깥쪽부터 40줄의 평균 밝기와 아주 어둡거나 하얀 점의 비율 */
+  function edgeStats(cv) {
+    const W = cv.width, H = cv.height, D = Math.max(1, Math.min(40, Math.floor(Math.min(W, H) / 4))), x = cv.getContext('2d', { willReadFrequently: true });
+    const line = (d, w, h, horiz, rev) => {
+      const m = [], f = [], n = horiz ? h : w, len = horiz ? w : h;
+      for (let k = 0; k < n; k++) {
+        const q = rev ? n - 1 - k : k; let s = 0, e = 0;
+        for (let t = 0; t < len; t++) { const i = (horiz ? q * w + t : t * w + q) * 4, v = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000; s += v; if (v < 40 || v > 250) e++; }
+        m.push(s / len); f.push(e / len);
+      }
+      return { m, f };
+    };
+    return { t: line(x.getImageData(0, 0, W, D).data, W, D, true, false), b: line(x.getImageData(0, H - D, W, D).data, W, D, true, true),
+      l: line(x.getImageData(0, 0, D, H).data, D, H, false, false), r: line(x.getImageData(W - D, 0, D, H).data, D, H, false, true) };
+  }
+  /* 테두리 줄(스캔 그림자·검은 띠·흰 빈 모서리)만 골라 최대 maxPx 까지 */
+  function trimFrom(st, maxPx) {
+    const o = { l: 0, t: 0, r: 0, b: 0 }; if (!st || !(maxPx > 0)) return o;
+    const med = a => { const b = [...a].sort((x, y) => x - y); return b.length ? b[b.length >> 1] : 0; };
+    for (const k of ['l', 't', 'r', 'b']) {
+      const s = st[k], mx = Math.min(maxPx, s.m.length - 5); if (mx <= 0) continue;
+      const ref = med(s.m.slice(mx)), refF = med(s.f.slice(mx));
+      for (let i = 0; i < mx; i++) if (Math.abs(s.m[i] - ref) > 45 || (s.f[i] > 0.25 && s.f[i] > refF + 0.2)) o[k] = i + 1;
+    }
+    return o;
+  }
   function summary(e) {
     if (!e) return null;
     return { rot: e.rot || 0, tilt: e.tilt || 0, crop: !!e.crop, paints: (e.paints || []).length, locals: (e.locals || []).length, pre: !!e.pre,
@@ -396,7 +422,7 @@
             if (d.rgba) x.putImageData(new ImageData(d.rgba, d.meta.w, d.meta.h), 0, 0);
             else { x.fillStyle = '#fff'; x.fillRect(0, 0, full.width, full.height); x.drawImage(d.bitmap, 0, 0); d.bitmap.close && d.bitmap.close(); }
             const prev = fit(full, +this.cfg.preview || 2400), gr = grayOf(prev);
-            return { meta: d.meta, full, prev, gray: gr, ver };
+            return { meta: d.meta, full, prev, gray: gr, ver, edges: edgeStats(full) };
           })();
           cache.set(key, p);
           p.catch(() => cache.delete(key));
@@ -416,7 +442,7 @@
       const out = { name, hp: null, orig: null };
       for (const side of ['hp', 'orig']) if (f.has(side)) {
         const d = await this.decoded(name, side), an = await this.analysis(name, side, d);
-        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver };
+        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, +this.cfg.trim_px || 0) };
       }
       out.qc = Analyze.qc(out.hp, out.orig, this.cfg);
       out.status = f.status; out.backup = await this.src.hasBackup(name);
