@@ -661,6 +661,9 @@ a.btn{text-decoration:none}
 
 <div class="modal-bg" id="mSet"><div class="modal">
   <h3>설정 <button class="icon-btn" data-close data-i="x"></button></h3>
+  <div class="set-row"><div>다음 장 열 때 자동 맞춤<small>끔: 보정본 그대로 · 가장자리 정리: 테두리 선·띠만 · 작업 따라 배우기: 작업자가 직접 자른 만큼을 배워서 다음 장도 그만큼 (이 PC 안에서만 학습)</small></div><select class="inp" id="sAutoNext"><option value="hp">끔</option><option value="auto">가장자리 정리</option><option value="learn">작업 따라 배우기</option></select></div>
+  <div class="set-row"><div>라벨 번호로 방향 맞춤<small>오른쪽 아래 4자리 라벨 번호가 정면으로 보이게 90° 단위 회전</small></div><select class="inp" id="sLabel"><option value="0">끔</option><option value="1">켬</option></select></div>
+  <div class="set-row"><div>학습 (이 PC 안에서만)<small>[학습하기]: 지금 폴더의 원본↔보정본 짝(최대 40장)을 비교해 사람이 자른 만큼을 배움 · 작업하며 직접 자른 장도 계속 배움<br><span id="sLearnTxt">—</span></small></div><div style="display:flex;gap:6px;flex:none"><button class="btn btn-green btn-sm" id="sLearnRun">학습하기</button><button class="btn btn-dark btn-sm" id="sLearnReset">초기화</button></div></div>
   <div class="set-row"><div>미리보기 해상도<small>클수록 돋보기가 선명, 작을수록 빠름</small></div><select class="inp" id="sPreview"><option value="1600">1600 px · 빠름</option><option value="2400">2400 px · 기본</option><option value="3200">3200 px · 선명</option></select></div>
   <div class="set-row"><div>기울기 경고 기준<small>이 각도 이상이면 경고 칩 표시</small></div><input class="inp" type="number" id="sSkew" step="0.05" min="0.05"></div>
   <div class="set-row"><div>다음 파일 미리 읽기<small>네트워크 드라이브가 느리면 2로</small></div><select class="inp" id="sPrefetch"><option value="0">끄기</option><option value="1">1장</option><option value="2">2장</option></select></div>
@@ -1260,6 +1263,58 @@ function autoEdits(side){const inf=S.cur&&S.cur.info[side];if(!inf)return null;c
   if(r===90){t={l:t.b,t:t.l,r:t.t,b:t.r};[W,H]=[H,W]}else if(r===180)t={l:t.r,t:t.b,r:t.l,b:t.t};else if(r===270){t={l:t.t,t:t.r,r:t.b,b:t.l};[W,H]=[H,W]}
   if(t.l||t.t||t.r||t.b)e.crop={x:t.l/W,y:t.t/H,w:(W-t.l-t.r)/W,h:(H-t.t-t.b)/H};
   return e}
+/* ===== 작업 따라 배우기 (이 PC 안에서만 학습 · 인터넷 불필요) =====
+   작업자가 원본 기준으로 직접 크롭해 저장할 때마다, 상하좌우를 몇 mm 잘랐는지 기록(최근 40장)
+   → 다음 장을 열 때 최근 기록의 중앙값만큼 자름 (규칙으로 찾은 테두리보다 덜 자르지는 않음) */
+const LEARN_KEY='scanqc:learn';
+function learnLoad(){try{const a=JSON.parse(localStorage.getItem(LEARN_KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+function learnRecord(edits){try{if(!S.cur||!edits||edits.base!=='orig'||!S.cur.info.orig)return;const m=S.cur.info.orig.meta,dpi=(m.dpi&&+m.dpi[0])||300,[W,H]=rotDims(m.w,m.h,edits.rot||0),c=edits.crop;
+  const mm=px=>Math.round(px/dpi*25.4*10)/10,o=c?{l:mm(c.x*W),t:mm(c.y*H),r:mm((1-c.x-c.w)*W),b:mm((1-c.y-c.h)*H)}:{l:0,t:0,r:0,b:0};
+  if(Object.values(o).some(v=>v<-.5||v>60))return;const a=learnLoad();a.push({...o,ts:Date.now(),src:'work'});while(a.length>40)a.shift();localStorage.setItem(LEARN_KEY,JSON.stringify(a));syncLearn()}catch(e){}}
+function learnModel(){const a=learnLoad().slice(-30);if(a.length<3)return null;const med=k=>{const v=a.map(x=>+x[k]||0).sort((p,q)=>p-q);return v[v.length>>1]};return{l:med('l'),t:med('t'),r:med('r'),b:med('b'),n:a.length}}
+function learnEdits(){const e=autoEdits('orig');if(!e||e.pre)return e;const L=learnModel();if(!L)return e;const m=S.cur.info.orig.meta,dpi=(m.dpi&&+m.dpi[0])||300,[W,H]=rotDims(m.w,m.h,e.rot||0);
+  const c=e.crop||{x:0,y:0,w:1,h:1},px=v=>v/25.4*dpi,cur={l:c.x*W,t:c.y*H,r:(1-c.x-c.w)*W,b:(1-c.y-c.h)*H};
+  const s={l:Math.min(W*.25,Math.max(cur.l,px(L.l))),t:Math.min(H*.25,Math.max(cur.t,px(L.t))),r:Math.min(W*.25,Math.max(cur.r,px(L.r))),b:Math.min(H*.25,Math.max(cur.b,px(L.b)))};
+  e.crop=(s.l||s.t||s.r||s.b)?{x:s.l/W,y:s.t/H,w:(W-s.l-s.r)/W,h:(H-s.t-s.b)/H}:null;return e}
+async function sideImg(name,side){try{return await Engine.image(name,side)}catch(e){return null}}
+/* 학습하기: 폴더에 이미 있는 원본↔보정본(HP) 짝을 비교해, 사람이 상하좌우를 몇 mm 잘랐는지 찾아 배움 (이 PC 안에서만 계산) */
+function grayArr(img,W,H,rot){const c=document.createElement('canvas'),q=rot%180!==0;c.width=q?H:W;c.height=q?W:H;const x=c.getContext('2d',{willReadFrequently:true});
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.translate(c.width/2,c.height/2);x.rotate(rot*Math.PI/180);x.drawImage(img,-W/2,-H/2,W,H);
+  const d=x.getImageData(0,0,c.width,c.height).data,g=new Float32Array(c.width*c.height);for(let i=0,j=0;i<g.length;i++,j+=4)g[i]=(d[j]*299+d[j+1]*587+d[j+2]*114)/1000;return{g,w:c.width,h:c.height}}
+function bestOffset(O,Hh,x0,x1,y0,y1,step){let best=null;const st=Math.max(1,step|0);
+  for(let dy=y0;dy<=y1;dy++)for(let dx=x0;dx<=x1;dx++){if(dx<0||dy<0||dx+Hh.w>O.w||dy+Hh.h>O.h)continue;let e=0,n=0;
+    for(let y=0;y<Hh.h;y+=st){const ro=(y+dy)*O.w+dx,rh=y*Hh.w;for(let x=0;x<Hh.w;x+=st){e+=Math.abs(O.g[ro+x]-Hh.g[rh+x]);n++}}
+    e/=n;if(!best||e<best.e)best={dx,dy,e}}return best}
+async function learnPair(name){
+  const info=await api.get('/api/info?name='+enc(name));if(!info||!info.orig||!info.hp)return null;
+  const mo=info.orig.meta,mh=info.hp.meta;if(Math.max(mh.w,mh.h)>Math.max(mo.w,mo.h)*1.01)return null;
+  const [io,ih]=await Promise.all([sideImg(name,'orig',info),sideImg(name,'hp',info)]);if(!io||!ih)return null;
+  let best=null;
+  for(const [S0,fine] of [[160,false]]){const s=S0/Math.max(mo.w,mo.h);
+    for(const rot of [0,90,180,270]){const O=grayArr(io,Math.round(mo.w*s),Math.round(mo.h*s),rot),Hh=grayArr(ih,Math.round(mh.w*s),Math.round(mh.h*s),0);
+      if(Hh.w>O.w+1||Hh.h>O.h+1)continue;const r=bestOffset(O,Hh,0,O.w-Hh.w,0,O.h-Hh.h,1);if(r&&(!best||r.e<best.e))best={...r,rot,s}}}
+  if(!best||best.e>40)return null;
+  const s2=640/Math.max(mo.w,mo.h),O=grayArr(io,Math.round(mo.w*s2),Math.round(mo.h*s2),best.rot),Hh=grayArr(ih,Math.round(mh.w*s2),Math.round(mh.h*s2),0),k=s2/best.s;
+  const f=bestOffset(O,Hh,Math.round(best.dx*k)-6,Math.round(best.dx*k)+6,Math.round(best.dy*k)-6,Math.round(best.dy*k)+6,2)||{dx:Math.round(best.dx*k),dy:Math.round(best.dy*k),e:best.e};
+  if(f.e>35)return null;
+  // 마지막으로 더 크게(1600px) 놓고 ±4칸만 다시 맞춰 1mm 미만 오차로
+  const s3=Math.min(1600/Math.max(mo.w,mo.h),io.width/mo.w,ih.width/mh.w),O3=grayArr(io,Math.round(mo.w*s3),Math.round(mo.h*s3),best.rot),H3=grayArr(ih,Math.round(mh.w*s3),Math.round(mh.h*s3),0),k3=s3/s2;
+  const g=bestOffset(O3,H3,Math.round(f.dx*k3)-4,Math.round(f.dx*k3)+4,Math.round(f.dy*k3)-4,Math.round(f.dy*k3)+4,3)||{dx:f.dx*k3,dy:f.dy*k3};
+  const dpi=(mo.dpi&&+mo.dpi[0])||300,mm=v=>Math.round(v/dpi*25.4*10)/10,[RW,RH]=best.rot%180?[mo.h,mo.w]:[mo.w,mo.h];
+  const l=g.dx/s3,t=g.dy/s3,r=RW-l-mh.w,b=RH-t-mh.h;
+  return{l:mm(l),t:mm(t),r:mm(Math.max(0,r)),b:mm(Math.max(0,b)),rot:best.rot,err:Math.round(f.e)}}
+async function runLearn(){const btn=$('#sLearnRun');if(S.learning){S.learning=false;return}
+  const list=S.files.filter(f=>f.orig&&f.hp);if(!list.length){toast('원본과 보정본이 둘 다 있는 파일이 없어요','warn');return}
+  const pick=list.length<=40?list:Array.from({length:40},(_,i)=>list[Math.floor(i*list.length/40)]);
+  S.learning=true;btn.textContent='멈추기';let ok=0,fail=0;const got=[];
+  for(let i=0;i<pick.length&&S.learning;i++){$('#sLearnTxt').textContent=`학습 중… ${i+1}/${pick.length} · ${pick[i].name}`;
+    try{const r=await learnPair(pick[i].name);if(r){got.push({...r,ts:Date.now(),src:'pair'});ok++}else fail++}catch(e){fail++}}
+  S.learning=false;btn.textContent='학습하기';
+  if(got.length){const a=learnLoad().filter(x=>x.src!=='pair').concat(got);while(a.length>60)a.shift();try{localStorage.setItem(LEARN_KEY,JSON.stringify(a))}catch(e){}}
+  syncLearn();toast(got.length?`학습 완료 · ${ok}장에서 배웠어요${fail?` (맞추지 못한 ${fail}장 제외)`:''} · 설정의 [다음 장 열 때 자동 맞춤]을 '작업 따라 배우기'로 바꾸면 적용돼요`:'배울 수 있는 짝을 찾지 못했어요 (보정본이 원본을 잘라낸 것이어야 해요)',got.length?'ok':'warn',6000)}
+function nextAuto(){return S.cfg.on_load==='learn'?learnEdits():autoEdits('orig')}
+function syncLearn(){const el=$('#sLearnTxt');if(!el)return;const L=learnModel(),n=learnLoad().length;
+  el.textContent=L?`배운 장 ${n} · 최근 평균 자르기 좌 ${L.l} · 위 ${L.t} · 우 ${L.r} · 아래 ${L.b} mm`:`배운 장 ${n} · 원본 기준으로 3장 이상 직접 크롭·저장하면 배우기 시작`}
 function autoEditsOld(side,mode){const an=anOf(side);if(!an)return null;mode=mode||S.cfg.auto_mode||'balance';
   const e=defaultEdits(side);e.tilt=an.auto.tilt;e.crop=autoCropFrom(an,mode);
   // 자동 보정은 기울기·크롭만 — 색은 절대 건드리지 않음
@@ -1411,7 +1466,7 @@ async function go(i){
     if(f.status!=='saving')f.status=info.status||f.status||'';
     // 불러오면 원본에서 자동 보정 (이미 검수한 파일은 저장된 보정본 그대로)
     const reviewed=info.hp&&REVIEWED.includes(f.status);
-    S.autoEd=info.orig?autoEdits('orig'):null;
+    S.autoEd=info.orig?nextAuto():null;
     S.initEdits=(S.cfg.on_load!=='hp'&&S.autoEd&&!reviewed)?clone(S.autoEd):defaultEdits(info.hp?'hp':'orig');
     S.edits=S.memo[f.name]?clone(S.memo[f.name]):clone(S.initEdits);S.edits.paints=S.edits.paints||[];S.initEdits.paints=S.initEdits.paints||[];S.hist=[];S.fut=[];S.stampOff=null;
     const q=qcList();f.qc=q.some(w=>w.level==='error')?'error':q.some(w=>w.level==='warn')?'warn':null;Engine.src.setQc(f.name,f.qc);
@@ -1453,7 +1508,7 @@ function persist(onlyDirty){
   if(S.cur.locked){toast(`${S.cur.locked}님이 작업 중인 파일이라 저장하지 않았어요`,'warn',3000);return true}
   const name=S.cur.name,edits=clone(S.edits),write=!isDefault(edits)||baseSide()==='orig',st=isAuto()?'auto':'edited';
   delete S.memo[name];
-  if(write){if(st==='edited'&&!isDefault(edits))S.lastSaved=clone(edits);setStatus(i,'saving');
+  if(write){if(st==='edited'&&!isDefault(edits)){S.lastSaved=clone(edits);learnRecord(edits)}setStatus(i,'saving');
     api.post('/api/save',{name,edits,status:st}).then(r=>{S.files[i].hp=true;setStatus(i,r.status)})
       .catch(e=>{setStatus(i,'error');toast(`저장 실패 · ${name} · ${e.message}`,'err',6000)})}
   else{setStatus(i,'ok');api.post('/api/status',{name,status:'ok'}).catch(()=>{})}
@@ -1695,14 +1750,14 @@ $('#mLib').onclick=()=>togglePanel('lib');$('#mIns').onclick=()=>togglePanel('in
 $('#scrim').onclick=()=>APP.classList.remove('lib-open','ins-open');
 $('#segTool').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.v;if(PAINT.has(t))S.lastPaint=t;setTool(S.tool===t&&t!=='select'?'select':t)};
 $('#segBase').onclick=e=>{const b=e.target.closest('button');if(b)toggleBase(b.dataset.v)};
-$('#swOnLoad').onclick=()=>{S.cfg.on_load=S.cfg.on_load==='hp'?'auto':'hp';api.post('/api/settings',{on_load:S.cfg.on_load}).catch(()=>{});syncUI();
-  toast(S.cfg.on_load==='hp'?'다음 파일부터 보정본 파일을 그대로 보여 줘요':'다음 파일부터 원본에서 자동 보정해요');if(S.idx>=0&&!dirty()){delete S.memo[S.cur.name];go(S.idx)}};
+$('#swOnLoad').onclick=()=>{S.cfg.on_load=S.cfg.on_load==='hp'?(S.lastOnLoad||'auto'):(S.lastOnLoad=S.cfg.on_load,'hp');api.post('/api/settings',{on_load:S.cfg.on_load}).catch(()=>{});syncUI();
+  toast(S.cfg.on_load==='hp'?'다음 파일부터 보정본 파일을 그대로 보여 줘요':S.cfg.on_load==='learn'?'다음 파일부터 작업 따라 배우기로 맞춰요':'다음 파일부터 원본에서 자동 보정해요');if(S.idx>=0&&!dirty()){delete S.memo[S.cur.name];go(S.idx)}};
 $('#tLabel').onclick=()=>{S.cfg.label_rot=S.cfg.label_rot===false;api.post('/api/settings',{label_rot:S.cfg.label_rot}).catch(()=>{});syncUI();
-  toast(S.cfg.label_rot?'라벨 번호가 정면으로 보이게 방향을 맞춰요':'라벨 방향 맞춤을 껐어요');if(S.cur&&isAuto()&&S.cur.info.orig){S.autoEd=autoEdits('orig');S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false);renderQC()}};
+  toast(S.cfg.label_rot?'라벨 번호가 정면으로 보이게 방향을 맞춰요':'라벨 방향 맞춤을 껐어요');if(S.cur&&isAuto()&&S.cur.info.orig){S.autoEd=nextAuto();S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false);renderQC()}};
 /* 가장자리 정리 최대 px: 바꾸면 지금 파일도 (손대기 전이면) 다시 계산 */
 const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit)S.cfg.trim_unit=unit;syncUI();clearTimeout(setTrim.t);setTrim.t=setTimeout(async()=>{const pristine=isAuto();
   await api.post('/api/settings',{trim_px:v,trim_unit:S.cfg.trim_unit||'px'}).catch(()=>{});if(!S.cur)return;const info=await api.get('/api/info?name='+enc(S.cur.name)).catch(()=>null);
-  if(!info||!S.cur||info.name!==S.cur.name)return;S.cur.info=info;S.autoEd=info.orig?autoEdits('orig'):null;
+  if(!info||!S.cur||info.name!==S.cur.name)return;S.cur.info=info;S.autoEd=info.orig?nextAuto():null;
   if(pristine&&S.autoEd){S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false)}renderQC();syncUI()},350)};
 $('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??2,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
@@ -1763,9 +1818,11 @@ $('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.data
     try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)}};
 $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.value);
 $('#pHelp').onclick=()=>$('#mHelp').classList.add('show');
-$('#btnSettings').onclick=()=>{$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
-$('#sSave').onclick=async()=>{const b={preview:+$('#sPreview').value,skew_warn:+$('#sSkew').value,prefetch:+$('#sPrefetch').value,backup:$('#sBackup').value==='1'};
-  try{const r=await api.post('/api/settings',b);S.cfg=r.cfg;$('#mSet').classList.remove('show');toast('설정을 저장했어요');if(S.idx>=0)go(S.idx)}catch(e){toast(e.message,'err')}};
+$('#btnSettings').onclick=()=>{$('#sAutoNext').value=['auto','learn'].includes(S.cfg.on_load)?S.cfg.on_load:'hp';$('#sLabel').value=S.cfg.label_rot?'1':'0';syncLearn();$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
+$('#sSave').onclick=async()=>{const b={on_load:$('#sAutoNext').value,label_rot:$('#sLabel').value==='1',preview:+$('#sPreview').value,skew_warn:+$('#sSkew').value,prefetch:+$('#sPrefetch').value,backup:$('#sBackup').value==='1'};
+  try{const r=await api.post('/api/settings',b);S.cfg=r.cfg;$('#mSet').classList.remove('show');toast('설정을 저장했어요');if(S.idx>=0){if(!dirty())delete S.memo[S.cur.name];go(S.idx)}}catch(e){toast(e.message,'err')}};
+$('#sLearnRun').onclick=()=>{if(!S.files||!S.files.length){toast('먼저 폴더를 불러오세요','warn');return}runLearn()};
+$('#sLearnReset').onclick=()=>{try{localStorage.removeItem(LEARN_KEY)}catch(e){}syncLearn();toast('학습 기록을 지웠어요')};
 $$('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))m.classList.remove('show')}));
 
 /* keyboard — e.code 기준이라 한글 입력 상태에서도 동작 */
