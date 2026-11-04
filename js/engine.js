@@ -4,7 +4,7 @@
    - 사용 통계: 폴더·파일 이름과 처리 건수만 기록 (관리자 페이지에서 확인) */
 (function () {
   'use strict';
-  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 2, trim_unit: 'mm', auto_sec: 3, cfgv: 2 };
+  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 2, trim_unit: 'mm', label_rot: true, auto_sec: 3, cfgv: 2 };
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } },
@@ -382,6 +382,62 @@
     }
     return o;
   }
+  /* 라벨 번호(4자리 숫자 도장, 바로 놓이면 오른쪽 아래)가 어느 모서리에 어느 방향으로 있는지 → 정면으로 돌릴 각도(시계 방향). server.py label_rot 와 같음 */
+  function labelRot(G) {
+    if (!G || !G.g) return null;
+    const { g, w: W, h: H } = G, M = Math.max(W, H);
+    const smp = []; for (let i = 0; i < g.length; i += Math.max(1, (g.length / 20000) | 0)) smp.push(g[i]); smp.sort((a, b) => a - b);
+    const paper = smp[Math.min(smp.length - 1, Math.floor(smp.length * 0.9))], thr = paper - 60, e = Math.max(2, Math.round(0.012 * M));
+    const comps = (b, RW, RH) => {
+      const seen = new Uint8Array(RW * RH), out = [], st = [];
+      for (let i = 0; i < b.length; i++) { if (!b[i] || seen[i]) continue; seen[i] = 1; st.push(i); let x0 = RW, y0 = RH, x1 = 0, y1 = 0, n = 0;
+        while (st.length) { const q = st.pop(), y = (q / RW) | 0, x = q - y * RW; n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= RW || ny >= RH) continue; const k = ny * RW + nx; if (b[k] && !seen[k]) { seen[k] = 1; st.push(k) } } }
+        out.push([x0, y0, x1 + 1, y1 + 1, n]) }
+      return out;
+    };
+    const merge = (cs, lim) => {
+      const small = cs.filter(c => c[3] - c[1] < lim && c[2] - c[0] < lim).map(c => c.slice()), big = cs.filter(c => !(c[3] - c[1] < lim && c[2] - c[0] < lim));
+      small.sort((a, b) => a[0] - b[0]); let done = false;
+      while (!done) { done = true;
+        outer: for (let i = 0; i < small.length; i++) { const a = small[i];
+          for (let j = i + 1; j < small.length; j++) { const b = small[j]; if (b[0] > a[2]) break;
+            const ov = Math.min(a[2], b[2]) - Math.max(a[0], b[0]), gap = Math.max(a[1], b[1]) - Math.min(a[3], b[3]);
+            if (ov >= 0.5 * Math.min(a[2] - a[0], b[2] - b[0]) && gap <= 0.25 * Math.max(a[3] - a[1], b[3] - b[1]) + 1) {
+              a[0] = Math.min(a[0], b[0]); a[1] = Math.min(a[1], b[1]); a[2] = Math.max(a[2], b[2]); a[3] = Math.max(a[3], b[3]); a[4] += b[4]; small.splice(j, 1); done = false; break outer } } } }
+      return small.concat(big);
+    };
+    const cv = v => { const m = v.reduce((a, b) => a + b, 0) / v.length; return Math.sqrt(v.reduce((a, b) => a + (b - m) * (b - m), 0) / v.length) / Math.max(1e-6, m) };
+    const res = {};
+    for (const [corner, vert] of [['br', false], ['tl', false], ['bl', true], ['tr', true]]) {
+      const rw = Math.round(W * 0.3), rh = Math.round(H * 0.3), R = corner === 'br' || corner === 'tr', B = corner === 'br' || corner === 'bl';
+      const x0 = R ? W - rw : e, x1 = R ? W - e : rw, y0 = B ? H - rh : e, y1 = B ? H - e : rh, w = x1 - x0, h = y1 - y0; if (w < 8 || h < 8) continue;
+      const RW = vert ? h : w, RH = vert ? w : h, b = new Uint8Array(RW * RH);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (g[(y0 + y) * W + x0 + x] < thr) b[vert ? x * RW + y : y * RW + x] = 1;
+      const cs = merge(comps(b, RW, RH), 0.05 * M), digs = [];
+      for (const c of cs) { const cw = c[2] - c[0], ch = c[3] - c[1]; if (c[0] === 0 || c[1] === 0 || c[2] === RW || c[3] === RH) continue;
+        if (ch >= 0.008 * M && ch <= 0.045 * M && cw >= 2 && ch / cw >= 1.1 && ch / cw <= 3.4) digs.push(c) }
+      digs.sort((a, b) => a[0] - b[0]); let best = null;
+      for (let i = 0; i < digs.length; i++) {
+        const ch = [digs[i]];
+        for (let j = i + 1; j < digs.length; j++) { const a = ch[ch.length - 1], c = digs[j], ha = a[3] - a[1], hb = c[3] - c[1], gap = c[0] - a[2];
+          if (Math.abs((a[1] + a[3]) - (c[1] + c[3])) / 2 < 0.35 * Math.max(ha, hb) && Math.abs(ha - hb) < 0.25 * Math.max(ha, hb) && gap >= -0.1 * ha && gap <= 1.2 * ha) ch.push(c);
+          else if (c[0] - a[2] > 1.2 * ha) break }
+        if (ch.length < 3 || ch.length > 6) continue;
+        const gx0 = Math.min(...ch.map(c => c[0])), gx1 = Math.max(...ch.map(c => c[2])), gy0 = Math.min(...ch.map(c => c[1])), gy1 = Math.max(...ch.map(c => c[3])), hm = gy1 - gy0, pad = 1.5 * hm;
+        let others = 0; for (const c of cs) if (!ch.includes(c) && c[4] >= 4 && c[3] - c[1] >= 0.4 * hm && c[3] - c[1] <= 2 * hm && c[2] - c[0] <= 4 * hm && c[2] > gx0 - pad && c[0] < gx1 + pad && c[3] > gy0 - pad && c[1] < gy1 + pad) others++;
+        if (others > 1) continue;
+        const cx = ch.map(c => (c[0] + c[2]) / 2), stp = cx.slice(1).map((v, k) => v - cx[k]);
+        const score = 10 - Math.abs(ch.length - 4) * 3 - others * 2 - cv(ch.map(c => c[3] - c[1])) * 10 - cv(stp) * 10 - cv(ch.map(c => c[2] - c[0])) * 3;
+        if (!best || score > best) best = score;
+      }
+      if (best != null) res[corner] = best;
+    }
+    const ROT = { br: 0, tl: 180, bl: 270, tr: 90 };
+    const cand = Object.entries(res).filter(([, v]) => v >= 5).map(([k, v]) => [v + (k === 'br' ? 0.5 : 0), k]).sort((a, b) => b[0] - a[0]);
+    return cand.length ? { rot: ROT[cand[0][1]], found: Object.keys(res).sort() } : null;
+  }
   function trimMax(cfg, meta) {
     const v = +cfg.trim_px || 0; if (cfg.trim_unit !== 'mm') return v;
     const dpi = (meta && meta.dpi && +meta.dpi[0]) || 300; return Math.round(v * dpi / 25.4);
@@ -446,7 +502,7 @@
       const out = { name, hp: null, orig: null };
       for (const side of ['hp', 'orig']) if (f.has(side)) {
         const d = await this.decoded(name, side), an = await this.analysis(name, side, d);
-        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, trimMax(this.cfg, d.meta)) };
+        out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, trimMax(this.cfg, d.meta)), label: d.label === undefined ? (d.label = labelRot(d.gray)) : d.label };
       }
       out.qc = Analyze.qc(out.hp, out.orig, this.cfg);
       out.status = f.status; out.backup = await this.src.hasBackup(name);

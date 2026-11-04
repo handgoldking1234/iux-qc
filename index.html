@@ -492,6 +492,7 @@ a.btn{text-decoration:none}
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
           <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span></div>
         <div class="sl" id="trimRow" title="상하좌우 가장자리의 테두리 선·검은 띠·흰 줄만 이 값까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
+        <div class="toggle" id="tLabel" title="오른쪽 아래 4자리 라벨 번호(예: 0639)가 다른 모서리에 있거나 옆으로 누워 있으면 90° 단위로 돌려 정면으로 맞춰요"><span>라벨 번호로 방향 맞춤</span><span class="sw" id="swLabel"></span></div>
         <div class="trim-unit"><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
         <div class="grid2 mt8">
           <button class="btn btn-white btn-sm" id="btnAutoOrig" title="원본에서 자동 보정 다시 적용 (F)">다시 적용 F</button>
@@ -1253,7 +1254,11 @@ function autoCropFrom(an,mode){const a=an.auto;
 /* 자동 보정: 회전 없이, 상하좌우 가장자리 줄(스캔 테두리·빈 모서리)만 최대 N px 잘라냄 */
 function autoEdits(side){const inf=S.cur&&S.cur.info[side];if(!inf)return null;const e=defaultEdits(side);
   if(side==='orig'){const p=preOf();if(p){e.pre=clone(p);return e}}
-  const t=inf.trim,m=inf.meta;if(t&&(t.l||t.t||t.r||t.b))e.crop={x:t.l/m.w,y:t.t/m.h,w:(m.w-t.l-t.r)/m.w,h:(m.h-t.t-t.b)/m.h};
+  // 라벨 번호가 정면으로 보이게 90° 단위로 돌림 (기울기는 건드리지 않음)
+  const r=(S.cfg.label_rot!==false&&inf.label&&inf.label.rot)||0;e.rot=r;
+  let t=inf.trim||{l:0,t:0,r:0,b:0},W=inf.meta.w,H=inf.meta.h;
+  if(r===90){t={l:t.b,t:t.l,r:t.t,b:t.r};[W,H]=[H,W]}else if(r===180)t={l:t.r,t:t.b,r:t.l,b:t.t};else if(r===270){t={l:t.t,t:t.r,r:t.b,b:t.l};[W,H]=[H,W]}
+  if(t.l||t.t||t.r||t.b)e.crop={x:t.l/W,y:t.t/H,w:(W-t.l-t.r)/W,h:(H-t.t-t.b)/H};
   return e}
 function autoEditsOld(side,mode){const an=anOf(side);if(!an)return null;mode=mode||S.cfg.auto_mode||'balance';
   const e=defaultEdits(side);e.tilt=an.auto.tilt;e.crop=autoCropFrom(an,mode);
@@ -1267,7 +1272,7 @@ function qcList(){if(!S.cur)return[];const inf=S.cur.info;
 function autoFrom(side,mode){if(!S.cur)return;const an=anOf(side);if(!an){toast((side==='hp'?'보정본':'원본')+' 이미지가 없습니다','warn');return}
   const ae=autoEdits(side);if(!ae)return;const t=S.cur.info[side].trim||{};
   commit(e=>Object.assign(e,ae),false);renderQC();
-  toast(`${side==='orig'?'원본에서':'보정본'} 자동 보정 · 가장자리 정리 ${['l','t','r','b'].map(k=>t[k]||0).join('·')}px (좌·상·우·하)`,'ok');return;
+  toast(`${side==='orig'?'원본에서':'보정본'} 자동 보정${ae.rot?` · 라벨 기준 ${ae.rot}° 회전`:''} · 가장자리 정리 ${['l','t','r','b'].map(k=>t[k]||0).join('·')}px (원본 좌·상·우·하)`,'ok');return;
   toast(`${side==='orig'?'원본에서':'보정본'} 자동 보정 · 기울기 ${an.auto.tilt>0?'+':''}${an.auto.tilt}° · ${MODE_TXT[mode]}`,'ok')}
 function cropPreset(kind){if(!S.cur)return;const side=baseSide(),an=anOf(side);
   const cr=autoCropFrom(an,kind);if(!cr){toast('잘라낼 테두리가 감지되지 않았습니다','warn');return}
@@ -1302,7 +1307,7 @@ function syncUI(){try{secTxt()}catch(e){}
   const has=!!S.cur;
   $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool));
 
-  $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');
+  $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');$('#swLabel').classList.toggle('on',S.cfg.label_rot!==false);
   setRange($('#trim'),Math.min(20,S.cfg.trim_px??2));$('#trimN').value=S.cfg.trim_px??2;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??2}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
   syncBrush();
   if(!has)return;
@@ -1692,6 +1697,8 @@ $('#segTool').onclick=e=>{const b=e.target.closest('button');if(!b)return;const 
 $('#segBase').onclick=e=>{const b=e.target.closest('button');if(b)toggleBase(b.dataset.v)};
 $('#swOnLoad').onclick=()=>{S.cfg.on_load=S.cfg.on_load==='hp'?'auto':'hp';api.post('/api/settings',{on_load:S.cfg.on_load}).catch(()=>{});syncUI();
   toast(S.cfg.on_load==='hp'?'다음 파일부터 보정본 파일을 그대로 보여 줘요':'다음 파일부터 원본에서 자동 보정해요');if(S.idx>=0&&!dirty()){delete S.memo[S.cur.name];go(S.idx)}};
+$('#tLabel').onclick=()=>{S.cfg.label_rot=S.cfg.label_rot===false;api.post('/api/settings',{label_rot:S.cfg.label_rot}).catch(()=>{});syncUI();
+  toast(S.cfg.label_rot?'라벨 번호가 정면으로 보이게 방향을 맞춰요':'라벨 방향 맞춤을 껐어요');if(S.cur&&isAuto()&&S.cur.info.orig){S.autoEd=autoEdits('orig');S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false);renderQC()}};
 /* 가장자리 정리 최대 px: 바꾸면 지금 파일도 (손대기 전이면) 다시 계산 */
 const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit)S.cfg.trim_unit=unit;syncUI();clearTimeout(setTrim.t);setTrim.t=setTimeout(async()=>{const pristine=isAuto();
   await api.post('/api/settings',{trim_px:v,trim_unit:S.cfg.trim_unit||'px'}).catch(()=>{});if(!S.cur)return;const info=await api.get('/api/info?name='+enc(S.cur.name)).catch(()=>null);
