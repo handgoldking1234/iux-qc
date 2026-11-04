@@ -384,6 +384,7 @@ a.btn{text-decoration:none}
         <div class="field"><label data-i="folder-open" data-s="14">원본 폴더 (읽기만)</label><div class="inp-wrap dropdir" data-k="orig"><input class="inp" id="dirOrig" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickOrig" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <div class="field"><label data-i="image" data-s="14">보정본 폴더 (HP · 저장할 곳)</label><div class="inp-wrap dropdir" data-k="hp"><input class="inp" id="dirHp" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickHp" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <button class="btn btn-green btn-block" id="btnOpen" data-i="folder-open" data-s="16">불러오기</button>
+      <button class="btn btn-dark btn-block" id="btnOpenFile" data-i="image" data-s="15" style="margin-top:6px" title="폴더 없이 이미지 파일 하나만 열어 보정하고 그 파일에 저장 (원본 사본은 따로 보관)">파일 하나만 열어 보정</button>
         <div class="recent" id="recent"></div>
         <button class="pcdl" id="btnPc"><span data-i="monitor" data-s="16"></span><span><b>PC 설치형 받기</b><small>Windows · 인터넷 없이 · 전체 경로 표시</small></span><span data-i="download" data-s="15"></span></button>
         <div class="privacy" id="privacy" hidden><span data-i="shield-check" data-s="13"></span><span>이미지는 이 PC 밖으로 나가지 않아요. 사용 통계(폴더·파일 이름, 처리 건수)만 기록돼요.</span></div>
@@ -614,6 +615,7 @@ a.btn{text-decoration:none}
     <h4>이렇게 쓰세요</h4>
     <ol>
       <li><b>폴더 지정</b> — 왼쪽 위에 원본 폴더와 보정본(HP) 폴더를 넣고 <b>불러오기</b></li>
+      <li><b>파일 하나만</b> — <b>파일 하나만 열어 보정</b> (또는 이미지를 창에 끌어다 놓기) → 고친 뒤 <kbd>Space</kbd> 면 그 파일에 저장 · 처음 모습은 왼쪽 원본에 남아요</li>
       <li><b>검수</b> — 오른쪽에 보정본 파일이 그대로 보여요. 이상 없으면 <kbd>Space</kbd> → 다음 장 · 가장자리 정리가 필요하면 <kbd>F</kbd> (자동 보정 스위치를 켜면 불러올 때마다 적용)</li>
       <li><b>필요한 장만 고치기</b> — 회전 <kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd>, 기울기 <kbd>,</kbd><kbd>.</kbd>, 크롭 <kbd>C</kbd>, 잡티 힐링 <kbd>J</kbd> 등 → <kbd>Space</kbd></li>
       <li><b>보정이 어려우면</b> <kbd>Q</kbd> — 원본을 그대로 보정본으로 저장</li>
@@ -1634,6 +1636,17 @@ async function openLocal(rec){
   const lab=(k,hd)=>{const v=unq($(DIRI[k]).value);return v&&lastSeg(v)===hd.name.toLowerCase()&&/[\\/]/.test(v)&&normPath(v)!==normPath(rec[k+'Path'])?v:rec[k+'Path']&&normPath(v)===normPath(rec[k+'Path'])?rec[k+'Path']:(L.path[k]&&lastSeg(L.path[k])===hd.name.toLowerCase()?L.path[k]:(rec[k+'Path']||''))};
   Object.assign(rec,{orig:o,hp:h,origName:o.name,hpName:h.name,origPath:lab('orig',o),hpPath:lab('hp',h),updated:Date.now()});
   await startSource(new Engine.LocalSource(o,h,rec),$('#btnOpen'));renderRecent()}
+/* 파일 하나만 열어 보정: 원본 = 연 순간의 내용(메모리 사본 · 저장해도 그대로), 저장 = 그 파일에 덮어쓰기 (처음 덮어쓸 때 브라우저 안에 백업) */
+async function openSingle(fh){
+  if(!fh){if(!window.showOpenFilePicker){toast('이 브라우저는 파일 열기를 지원하지 않아요 · PC용 Edge 또는 Chrome을 쓰세요','warn',5000);return}
+    try{[fh]=await showOpenFilePicker({types:[{description:'스캔 이미지',accept:{'image/*':['.tif','.tiff','.jpg','.jpeg','.png','.bmp']}}]})}catch(e){return}}
+  if(!(await perm(fh,'readwrite'))){toast('파일에 저장할 권한을 허용해야 보정·저장할 수 있어요','warn',4000);return}
+  const f0=await fh.getFile(),buf=await f0.arrayBuffer(),snap={kind:'file',name:fh.name,getFile:async()=>new File([buf],fh.name,{lastModified:f0.lastModified})};
+  const dir=(h,w)=>({kind:'directory',name:fh.name,async*entries(){yield[fh.name,h]},async getFileHandle(n){if(n===fh.name)return w?fh:h;throw new DOMException('파일 하나만 연 상태','NotFoundError')},
+    async getDirectoryHandle(){throw new DOMException('파일 하나만 연 상태','NotAllowedError')},async isSameEntry(){return false}});
+  const rec={id:'single-'+fh.name.replace(/[^\w.-]/g,'_')+'-'+f0.size,statuses:{},last:null,logs:[],origPath:fh.name+' (처음 연 모습)',hpPath:fh.name};
+  await startSource(new Engine.LocalSource(dir(snap,false),dir(fh,true),rec),$('#btnOpenFile'));
+  if(S.files&&S.files.length)toast('파일 하나만 열었어요 · 저장하면 이 파일에 덮어써요 (처음 모습은 왼쪽 원본으로 보여요)','ok',4500)}
 async function openProject(){const id=$('#projSel').value,p=(S.projects||[]).find(x=>x.id===id);if(!p){toast('작업 묶음을 고르세요','warn');return}
   await startSource(new Engine.CloudSource(p),$('#btnOpenProj'))}
 async function startSource(src,btn){
@@ -1718,6 +1731,11 @@ for(const k of['orig','hp']){const i=$(DIRI[k]),w=i.closest('.inp-wrap');
     if(!it||!it.getAsFileSystemHandle){toast('이 브라우저는 폴더 끌어다 놓기를 지원하지 않아요 · 오른쪽 버튼을 쓰세요','warn');return}
     const h=await it.getAsFileSystemHandle();if(!h||h.kind!=='directory'){toast('폴더를 끌어다 놓으세요','warn');return}
     L[k]=h;L.path[k]=await knownPath(k,h);i.value='';syncDirs();if(L.orig&&L.hp)toast('두 폴더가 준비됐어요 · 불러오기를 누르세요')})}
+$('#btnOpenFile').onclick=()=>openSingle();
+/* 이미지 파일 하나를 창에 끌어다 놓아도 열림 (폴더 입력칸 위는 제외) */
+addEventListener('dragover',e=>{if(!e.target.closest||!e.target.closest('.inp-wrap,.dirbtn,input'))e.preventDefault()});
+addEventListener('drop',async e=>{if(e.target.closest&&e.target.closest('.inp-wrap,.dirbtn,input'))return;e.preventDefault();const it=[...(e.dataTransfer&&e.dataTransfer.items||[])].find(x=>x.kind==='file');if(!it||!it.getAsFileSystemHandle)return;
+  const h=await it.getAsFileSystemHandle();if(h&&h.kind==='file'&&/\.(tiff?|jpe?g|png|bmp)$/i.test(h.name))openSingle(h);else if(h&&h.kind==='file')toast('TIF·JPG·PNG·BMP 이미지만 열 수 있어요','warn')});
 $('#btnOpen').onclick=()=>openLocal();$('#btnOpenProj').onclick=openProject;
 $('#srcSeg').onclick=e=>{const b=e.target.closest('[data-src]');if(b)setSrcTab(b.dataset.src)};
 $('#btnLogin').onclick=()=>{setLgMode('in');$('#mLogin').classList.add('show');setTimeout(()=>$('#lgId').focus(),50)};
