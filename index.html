@@ -32,6 +32,9 @@ input,select{font:inherit;color:var(--text)}
 
 .app{display:grid;grid-template-columns:var(--libw,300px) minmax(0,1fr) var(--insw,320px);grid-template-rows:minmax(0,1fr) 88px;gap:8px;padding:8px 8px 0;height:100vh}
 .app.lib-closed{--libw:72px}
+/* 양쪽 사이드바는 위아래 끝까지 · 재생 막대는 가운데 열만 */
+@media(min-width:861px){.app>.lib{grid-column:1;grid-row:1/3;margin-bottom:8px}.app>.ins{grid-column:3;grid-row:1/3;margin-bottom:8px}.app>.stage{grid-column:2;grid-row:1}.app>.player{grid-column:2;grid-row:2}.app.focus>.stage,.app.focus>.player{grid-column:1!important}}
+@media(min-width:1181px){.app>.player{grid-template-columns:minmax(0,1fr) minmax(360px,1.6fr) minmax(0,1fr);gap:12px}.app>.player .vol{justify-content:flex-end}}
 .panel{background:var(--base);border-radius:var(--r);min-height:0;display:flex;flex-direction:column;overflow:hidden}
 
 /* ---------- library ---------- */
@@ -65,7 +68,20 @@ input,select{font:inherit;color:var(--text)}
 .btn-sm{height:28px;padding:0 12px;font-size:12px}
 
 .stats{padding:4px 16px 12px}
-.stats-top{display:flex;align-items:baseline;justify-content:space-between}
+.stats-top{display:flex;align-items:baseline;justify-content:space-between;gap:6px}.stats-top>#stPct{margin-left:auto}
+/* 왼쪽 영역 접기: 폴더 · 진행 현황 → 파일 목록을 길게 */
+.lib-fold{display:flex;align-items:center;gap:6px;width:calc(100% - 32px);margin:0 16px 6px;padding:4px 2px;font-size:11px;font-weight:700;color:var(--mute);text-align:left}
+.lib-fold:hover{color:var(--text)}.lib-fold b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--sub)}
+.lib-fold .chev,.lib-chev .chev{display:grid;place-items:center;transition:.15s;transform:rotate(90deg)}
+.lib.fold-f .lib-fold .chev,.lib.fold-s .lib-chev .chev{transform:none}
+.lib.fold-f .folders,.lib.fold-f .srcname{display:none!important}
+.lib:not(.fold-f) .lib-fold b{display:none}
+.lib-chev{width:22px;height:22px;align-self:center}
+.lib.fold-s .stats .bar,.lib.fold-s .stats-row,.lib.fold-s .chips{display:none}
+.lib-closed .lib-fold,.lib-closed .lib-chev{display:none}
+/* 오른쪽 보정 영역 접기 */
+.sec.foldable>.sec-h{cursor:pointer;user-select:none}.sec.foldable>.sec-h .fchev{display:grid;place-items:center;flex:none;color:var(--mute);transition:.15s;transform:rotate(90deg)}
+.sec.foldable.folded>.sec-h{margin-bottom:0}.sec.foldable.folded>.sec-h .fchev{transform:none}.sec.foldable.folded>:not(.sec-h){display:none!important}
 .stats-big{font-size:22px;font-weight:800;letter-spacing:-.5px}
 .stats-big span{color:var(--sub);font-size:14px;font-weight:600}
 .bar{height:4px;border-radius:4px;background:#4d4d4d;overflow:hidden;margin:8px 0}
@@ -381,6 +397,7 @@ a.btn{text-decoration:none}
       <button class="icon-btn" id="btnSettings" title="설정" data-i="settings"></button>
       <button class="icon-btn" id="btnLib" title="목록 접기" data-i="panel-left"></button>
     </div>
+    <button class="lib-fold" id="foldF" title="폴더 영역 접기·펴기"><span data-i="folder-open" data-s="13"></span><span>폴더</span><b id="foldFTxt"></b><span class="chev" data-i="chevron-right" data-s="14"></span></button>
     <div class="folders">
       <div class="seg srcseg" id="srcSeg"><button data-src="local" class="on"><span data-i="monitor" data-s="14"></span>내 PC 폴더</button><button data-src="cloud"><span data-i="users" data-s="14"></span>팀 작업</button></div>
       <div id="paneLocal">
@@ -415,7 +432,7 @@ a.btn{text-decoration:none}
     </div>
     <div class="srcname" id="srcName" hidden><span data-i="folder" data-s="13"></span><b></b></div>
     <div class="stats">
-      <div class="stats-top"><div class="stats-big" id="stDone">0 <span>/ 0 검수</span></div><span id="stPct" style="color:var(--sub);font-size:12px">0%</span></div>
+      <div class="stats-top"><div class="stats-big" id="stDone">0 <span>/ 0 검수</span></div><span id="stPct" style="color:var(--sub);font-size:12px">0%</span><button class="icon-btn lib-chev" id="foldS" title="진행 현황·필터 접기·펴기"><span class="chev" data-i="chevron-right" data-s="14"></span></button></div>
       <div class="bar"><i id="stBar" style="width:0"></i></div>
       <div class="stats-row" id="stRow"></div>
     </div>
@@ -493,9 +510,9 @@ a.btn{text-decoration:none}
   <aside class="panel ins">
     <div class="ins-head"><h2>보정</h2><span style="flex:1"></span><button class="help-btn" id="btnHelp" title="단축키·사용법 (/)"><span data-i="keyboard" data-s="14"></span>단축키·사용법</button><button class="icon-btn" id="btnIns" title="보정 패널 접기" data-i="panel-right"></button></div>
     <div class="ins-body">
-      <div class="sec" id="secAuto">
+      <div class="sec foldable" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
-          <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span></div>
+          <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span><span class="fchev" data-i="chevron-right" data-s="16"></span></div>
         <div class="sl" id="trimRow" title="상하좌우 가장자리의 테두리 선·검은 띠·흰 줄만 이 값까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
         <div class="toggle" id="tLabel" title="오른쪽 아래 4자리 라벨 번호(예: 0639)가 다른 모서리에 있거나 옆으로 누워 있으면 90° 단위로 돌려 정면으로 맞춰요"><span>라벨 번호로 방향 맞춤</span><span class="sw" id="swLabel"></span></div>
         <div class="trim-unit"><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
@@ -505,8 +522,8 @@ a.btn{text-decoration:none}
         </div>
       </div>
 
-      <div class="sec">
-        <div class="sec-h"><span data-i="rotate-cw" data-s="16"></span><span>회전</span><small id="rotInfo">0°</small></div>
+      <div class="sec foldable" id="secRot">
+        <div class="sec-h"><span data-i="rotate-cw" data-s="16"></span><span>회전</span><small id="rotInfo">0°</small><span class="fchev" data-i="chevron-right" data-s="16"></span></div>
         <div class="grid4" id="rotBtns">
           <button class="tbtn" data-r="0">0°<kbd>S</kbd></button><button class="tbtn" data-r="90">90°<kbd>D</kbd></button>
           <button class="tbtn" data-r="180">180°<kbd>W</kbd></button><button class="tbtn" data-r="270">270°<kbd>A</kbd></button>
@@ -1598,6 +1615,17 @@ function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.m
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
 function setFocus(on){APP.classList.toggle('focus',on);APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){if(on&&S.origEdit)return;S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
+/* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
+const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
+const saveFold=()=>{try{localStorage.setItem('scanqc:fold',JSON.stringify(FOLD))}catch(e){}};
+const LIB=document.querySelector('.lib');
+function applyFold(){LIB.classList.toggle('fold-f',!!FOLD.f);LIB.classList.toggle('fold-s',!!FOLD.s);
+  for(const id of['secAuto','secRot']){const el=$('#'+id);if(el)el.classList.toggle('folded',!!FOLD[id])}}
+function foldTxt(){const sn=$('#srcName');let t=sn&&!sn.hidden?sn.title:'';if(!t){const o=$('#origDir')||$('#dirOrig'),h=$('#hpDir')||$('#dirHp');t=[o&&o.value,h&&h.value].filter(Boolean).map(v=>v.split(/[\\/]/).filter(Boolean).pop()).join(' → ')}$('#foldFTxt').textContent=t}
+$('#foldF').onclick=()=>{FOLD.f=!FOLD.f;foldTxt();saveFold();applyFold()};
+$('#foldS').onclick=()=>{FOLD.s=!FOLD.s;saveFold();applyFold()};
+for(const id of['secAuto','secRot']){const el=$('#'+id);if(!el)continue;el.querySelector('.sec-h').addEventListener('click',e=>{if(e.target.closest('.sw,input,button,select'))return;FOLD[id]=!FOLD[id];saveFold();applyFold()})}
+applyFold();foldTxt();
 $('#btnFoldO').onclick=()=>setSolo(true);$('#btnUnfoldO').onclick=()=>setSolo(false);
 try{if(localStorage.getItem('scanqc:solo'))setTimeout(()=>setSolo(true),0)}catch(e){}
 
