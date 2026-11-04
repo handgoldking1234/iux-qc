@@ -4,7 +4,7 @@
    - 사용 통계: 폴더·파일 이름과 처리 건수만 기록 (관리자 페이지에서 확인) */
 (function () {
   'use strict';
-  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'auto', trim_px: 2, trim_unit: 'mm', label_rot: true, auto_sec: 3, cfgv: 2 };
+  const CFG_DEF = { preview: 2400, auto_mode: 'balance', margin_mm: 10, skew_warn: 0.3, backup: true, prefetch: 1, on_load: 'hp', trim_px: 2, trim_unit: 'mm', label_rot: false, auto_sec: 3, cfgv: 3 };
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } },
@@ -450,7 +450,7 @@
 
   /* ================================================================ 엔진 */
   const Engine = {
-    cfg: (c => (c.cfgv || 0) < 2 ? Object.assign(c, { trim_px: 2, trim_unit: 'mm', cfgv: 2 }) : c)(Object.assign({}, CFG_DEF, LS.get('scanqc:cfg', {}))),
+    cfg: (c => { if ((c.cfgv || 0) < 2) Object.assign(c, { trim_px: 2, trim_unit: 'mm' }); if ((c.cfgv || 0) < 3) Object.assign(c, { on_load: 'hp', label_rot: false, cfgv: 3 }); return c })(Object.assign({}, CFG_DEF, LS.get('scanqc:cfg', {}))),
     src: null, dec: new Map(), an: new Map(), jobs: new Map(), pending: 0,
     render: null, isDefault: null, colorDefault: null,   // index.html 의 보정 함수(화면과 똑같은 결과)
     LS, IDB, Cloud, Usage, LocalSource, CloudSource, FileRec,
