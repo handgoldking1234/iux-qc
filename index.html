@@ -638,6 +638,7 @@ a.btn{text-decoration:none}
       <div class="prog"><span id="pCur">0</span><input type="range" id="pBar" min="1" max="1" value="1"><span id="pTot">0</span></div>
     </div>
     <div class="vol">
+      <button class="cbtn" id="pFocus" data-tip="넓게 보기 (패널 숨기기) Tab" data-i="maximize-2"></button>
       <button class="cbtn" id="pFit" data-tip="화면 맞춤 0" data-i="scan"></button>
       <button class="cbtn csec" id="pGap" data-tip="원본·보정본 사이 간격">간격</button>
       <button class="cbtn" id="pSolo" data-tip="원본 패널 표시 Shift+Tab" data-i="columns-2"></button>
@@ -1672,7 +1673,7 @@ $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(f
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
-function setFocus(on){APP.classList.toggle('focus',on);try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
+function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.style.color=on?'var(--accentText)':'';b.dataset.tip=on?'패널 다시 보기 Tab':'넓게 보기 (패널 숨기기) Tab'}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){if(on&&S.origEdit)return;S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
 /* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
 const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
@@ -1921,7 +1922,7 @@ $('#btnCopy').onclick=copyOriginal;$('#pCopy').onclick=copyOriginal;$('#btnResto
 $('#pSave').onclick=saveNext;$('#pPrev').onclick=prev;$('#pNext').onclick=skip;
 $('#pBar').oninput=e=>{setRange(e.target,+e.target.value);$('#pCur').textContent=e.target.value};
 $('#pBar').onchange=e=>jumpTo(+e.target.value-1);
-$('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pSolo').onclick=()=>setSolo(!S.solo);
+$('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pFocus').onclick=()=>setFocus(!APP.classList.contains('focus'));$('#pSolo').onclick=()=>setSolo(!S.solo);
 $('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
 /* 버튼을 마우스로 누른 뒤 포커스를 놓아 줌: 흰 테두리가 남지 않고, 이어서 누르는 Space·방향키가 버튼을 다시 누르지 않게 */
 addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&e.detail>0)setTimeout(()=>b.blur(),0)},true);
