@@ -164,10 +164,10 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .pane:has(>.toolbar) .view{margin-right:60px}
 /* 도구 막대 자리는 따로 한 칸 → 원본·보정본 이미지 영역은 같은 크기, 두 영역은 붙여서 */
 @media(min-width:861px){
-  .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--tbw,60px);column-gap:2px}
+  .app .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--tbw,60px);column-gap:2px}
   #paneH{grid-column:2/4}
   .pane:has(>.toolbar) .view{margin-right:calc(var(--tbw,60px) + 2px)!important}
-  .panes.solo{grid-template-columns:0 minmax(0,1fr) var(--tbw,60px);column-gap:0}
+  .app .panes.solo{grid-template-columns:0 minmax(0,1fr) var(--tbw,60px);column-gap:0}
   .panes.solo .pane:has(>.toolbar) .view{margin-right:var(--tbw,60px)!important}
   #paneO{border-top-right-radius:0;border-bottom-right-radius:0}#paneH{border-top-left-radius:0;border-bottom-left-radius:0}
 }
@@ -358,7 +358,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .app.ins-closed{--insw:56px}
 .ins>.toolbar{position:static;margin:6px auto 0;align-self:center;box-shadow:none;background:transparent;border:0;padding:2px}
 .app:not(.ins-closed) .ins>.toolbar{display:none}
-@media(min-width:861px){.app.tools-in-ins .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 0}.app.tools-in-ins .panes.solo{grid-template-columns:0 minmax(0,1fr) 0}}
+@media(min-width:861px){.app.tools-in-ins .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:2px}.app.tools-in-ins #paneH{grid-column:auto}.app.tools-in-ins .panes.solo{grid-template-columns:0 minmax(0,1fr);column-gap:0}}
 .ins-closed .ins-body{display:none}
 .ins-closed .ins-head{flex-direction:column;height:auto;padding:16px 8px 8px}
 .ins-closed .ins-head h2{display:none}
@@ -1639,7 +1639,7 @@ function curLocal(create){if(!S.sel||!S.edits)return null;const k=JSON.stringify
 function colorObj(create){const L=curLocal(create),c=L?L.color:(S.sel?defColor():S.edits.color);
   if(!c.cv)c.cv={rgb:clone(ID_CURVE),r:clone(ID_CURVE),g:clone(ID_CURVE),b:clone(ID_CURVE)};if(!c.cb)c.cb={s:[0,0,0],m:[0,0,0],h:[0,0,0]};return c}
 /* 오른쪽 보정 패널을 접으면 도구 막대는 그 접힌 패널 안으로 (이미지 영역을 가리지 않게) */
-function moveTools(pane){const pn=$(pane),toIns=pane==='#paneH'&&APP.classList.contains('ins-closed')&&!MOB.matches;(toIns?document.querySelector('.ins'):pn).appendChild($('#segTool'));pn.appendChild($('#cropbar'));
+function moveTools(pane){const pn=$(pane),toIns=pane==='#paneH'&&APP.classList.contains('ins-closed')&&!APP.classList.contains('focus')&&!MOB.matches;(toIns?document.querySelector('.ins'):pn).appendChild($('#segTool'));pn.appendChild($('#cropbar'));
   APP.classList.toggle('tools-in-ins',toIns);requestAnimationFrame(()=>{vO.resize();vH.resize()})}
 function placeTools(){if(!APP.classList.contains('loaded'))return;moveTools(S.origEdit?'#paneO':'#paneH')}
 function enterOrigEdit(){if(!S.cur||S.origEdit)return;if(S.solo)setSolo(false);if(!S.cur.info.orig){toast('원본 파일이 없습니다','warn');return}
@@ -1672,7 +1672,7 @@ $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(f
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
-function setFocus(on){APP.classList.toggle('focus',on);APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
+function setFocus(on){APP.classList.toggle('focus',on);try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){if(on&&S.origEdit)return;S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
 /* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
 const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
