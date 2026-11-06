@@ -86,9 +86,9 @@ input,select{font:inherit;color:var(--text)}
 .stats-big span{color:var(--sub);font-size:14px;font-weight:600}
 .bar{height:4px;border-radius:4px;background:#4d4d4d;overflow:hidden;margin:8px 0}
 .bar>i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
-.stats-row{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--sub);font-size:12px}
+.stats-row{display:flex;flex-wrap:nowrap;gap:10px;color:var(--sub);font-size:11.5px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}.stats-row::-webkit-scrollbar{display:none}
 .stats-row b{color:var(--text);font-weight:700}
-.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.chips{display:flex;flex-wrap:nowrap;gap:5px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:thin}.chips::-webkit-scrollbar{height:4px}.chips::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:2px}.chips .chip{flex:none;height:26px;padding:0 9px}
 .chips::-webkit-scrollbar{display:none}
 .chip{height:28px;padding:0 10px;border-radius:var(--pill);background:var(--elev2);font-size:12px;font-weight:500;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:.15s}
 .chip:hover{background:#333}
@@ -136,7 +136,7 @@ kbd{font:600 10px/1 ui-monospace,Consolas,monospace;padding:3px 5px;border-radiu
 .app:not(.loaded) #panes>.toolbar{right:auto;left:22px;top:12px;z-index:6;opacity:.45;pointer-events:none}
 .toolbar{position:absolute;right:10px;top:58px;z-index:4;display:flex;flex-direction:column;gap:2px;padding:5px;background:rgba(24,24,24,.94);border:1px solid #2e2e2e;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .toolbar>i{height:1px;background:#333;margin:4px 4px}
-@media(max-height:860px){.toolbar{top:48px;padding:3px;gap:1px}.toolbar button{width:32px;height:30px}.toolbar>i{margin:2px 4px}.toolbar button:hover::after{right:40px}.pane:has(>.toolbar) .view{margin-right:48px}}
+@media(max-height:860px){.toolbar{top:48px;padding:3px;gap:1px}.toolbar button{width:32px;height:30px}.toolbar>i{margin:2px 4px}.toolbar button:hover::after{right:40px}.pane:has(>.toolbar) .view{margin-right:48px}.app{--tbw:50px}}
 .toolbar button{position:relative;width:36px;height:36px;border-radius:7px;display:grid;place-items:center;color:var(--sub);transition:.12s}
 .toolbar button:hover{background:var(--hover);color:#fff}
 .toolbar button.on{background:var(--accent);color:#fff}
@@ -160,11 +160,21 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .pane-head .zoombar{position:static;box-shadow:none;background:var(--elev2);border:0;padding:2px;flex:none}
 .pane-head .zoombar button{height:22px}
 .pane:has(>.toolbar) .view{margin-right:60px}
+/* 도구 막대 자리는 따로 한 칸 → 원본·보정본 이미지 영역은 같은 크기, 두 영역은 붙여서 */
+@media(min-width:861px){
+  .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--tbw,60px);column-gap:2px}
+  #paneH{grid-column:2/4}
+  .pane:has(>.toolbar) .view{margin-right:calc(var(--tbw,60px) + 2px)!important}
+  .panes.solo{grid-template-columns:0 minmax(0,1fr) var(--tbw,60px);column-gap:0}
+  .panes.solo .pane:has(>.toolbar) .view{margin-right:var(--tbw,60px)!important}
+  #paneO{border-top-right-radius:0;border-bottom-right-radius:0}#paneH{border-top-left-radius:0;border-bottom-left-radius:0}
+}
 .pane{container-type:inline-size}
 #hO,#hH{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:620px){.pane-head .zoombar [data-z="100"],.pane-head .zoombar i{display:none}}
 @container (max-width:470px){#hO,#hH{display:none}#btnOEdit{font-size:0;gap:0;padding:0 7px}}
 .trim-unit{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;font-size:11px;color:var(--mute)}.trim-unit span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feat-row{display:block}.feats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.feats label{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:14px;background:var(--elev2);font-size:12px;cursor:pointer;user-select:none}.feats input{accent-color:var(--accent)}
 .help-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;margin-right:6px;border-radius:14px;background:var(--elev2);color:var(--sub);font-size:12px;font-weight:700;transition:.15s}
 .help-btn:hover{background:#333;color:#fff}
 .ins-closed .help-btn,.ins-closed .ins-head>span{display:none}
@@ -517,9 +527,9 @@ a.btn{text-decoration:none}
       <div class="sec foldable" id="secAuto">
         <div class="sec-h"><span data-i="sparkles" data-s="16"></span><span>자동 보정</span>
           <span class="sw" id="swOnLoad" title="불러올 때 자동 보정" style="cursor:pointer"></span><span class="fchev" data-i="chevron-right" data-s="16"></span></div>
-        <div class="sl" id="trimRow" title="상하좌우 가장자리의 테두리 선·검은 띠·흰 줄만 이 값까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
+        <div class="sl" id="trimRow" hidden title="상하좌우 가장자리의 테두리 선·검은 띠·흰 줄만 이 값까지 잘라요 · 회전은 하지 않아요"><span>가장자리</span><input type="range" id="trim" min="0" max="20" step="1"><input type="number" id="trimN" min="0" max="30" step="1"></div>
         <div class="toggle" id="tLabel" title="오른쪽 아래 4자리 라벨 번호(예: 0639)가 다른 모서리에 있거나 옆으로 누워 있으면 90° 단위로 돌려 정면으로 맞춰요"><span>라벨 번호로 방향 맞춤</span><span class="sw" id="swLabel"></span></div>
-        <div class="trim-unit"><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
+        <div class="trim-unit" hidden><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
         <div class="grid2 mt8">
           <button class="btn btn-white btn-sm" id="btnAutoOrig" title="원본에서 자동 보정 다시 적용 (F)">다시 적용 F</button>
           <button class="btn btn-dark btn-sm" id="btnPaste" title="직전에 수정한 보정을 그대로 (V)">이전 보정 V</button>
@@ -563,7 +573,7 @@ a.btn{text-decoration:none}
           <div class="grid2 mt8"><button class="btn btn-dark btn-sm" id="pUndo">마지막 획 취소</button><button class="btn btn-dark btn-sm" id="pClear">획 모두 삭제</button></div></div>
       </div>
 
-      <details class="sec" open>
+      <details class="sec" id="secColor" open>
         <summary><div class="sec-h"><span data-i="sun" data-s="16"></span><span>색 보정 <em class="tag blue" id="selColorTag" style="font-style:normal;margin-left:6px" hidden>선택 영역</em></span><span class="chev" data-i="chevron-right" data-s="16"></span></div></summary>
         <div class="mt8"><button class="btn btn-dark btn-sm" id="btnLevels">자동 레벨</button></div>
         <div class="sl"><span>밝기</span><input type="range" id="c_bright" min="-50" max="50" step="1"><input type="number" id="n_bright" step="1"></div>
@@ -572,9 +582,11 @@ a.btn{text-decoration:none}
         <div class="sl"><span>검정점</span><input type="range" id="c_black" min="0" max="128" step="1"><input type="number" id="n_black" step="1"></div>
         <div class="sl"><span>흰색점</span><input type="range" id="c_white" min="128" max="255" step="1"><input type="number" id="n_white" step="1"></div>
         <div class="toggle" id="tGray"><span>흑백(그레이스케일)</span><span class="sw" id="swGray"></span></div>
+        <div id="curveBox">
         <div class="sub-h">곡선<span style="flex:1"></span><div class="mini-seg" id="cvCh"><button data-v="rgb">RGB</button><button data-v="r">R</button><button data-v="g">G</button><button data-v="b">B</button></div></div>
         <canvas id="cvEd" width="544" height="400"></canvas>
         <div class="hint" style="margin-top:4px">클릭: 점 추가 · 드래그: 조절 · 더블클릭: 점 삭제 <a href="#" id="cvReset" style="color:var(--accentText)">곡선 초기화</a></div>
+        </div>
         <div class="sub-h">색 균형<span style="flex:1"></span><div class="mini-seg" id="cbRange"><button data-v="s">그림자</button><button data-v="m">중간톤</button><button data-v="h">밝은 영역</button></div></div>
         <div class="sl cb"><span>시안</span><input type="range" id="cb0" min="-100" max="100" step="1" style="--g:linear-gradient(90deg,#00b7c3,#e23b3b)"><span class="cbr">빨강</span></div>
         <div class="sl cb"><span>마젠타</span><input type="range" id="cb1" min="-100" max="100" step="1" style="--g:linear-gradient(90deg,#d63fd6,#2fbf4a)"><span class="cbr">초록</span></div>
@@ -689,9 +701,12 @@ a.btn{text-decoration:none}
 
 <div class="modal-bg" id="mSet"><div class="modal">
   <h3>설정 <button class="icon-btn" data-close data-i="x"></button></h3>
-  <div class="set-row"><div>다음 장 열 때 자동 맞춤<small>끔: 보정본 그대로 · 가장자리 정리: 테두리 선·띠만 · 작업 따라 배우기: 작업자가 직접 자른 만큼을 배워서 다음 장도 그만큼 (이 PC 안에서만 학습)</small></div><select class="inp" id="sAutoNext"><option value="hp">끔</option><option value="auto">가장자리 정리</option><option value="learn">작업 따라 배우기</option></select></div>
+  <div class="set-row"><div>다음 장 열 때 자동 맞춤<small>끔: 보정본 그대로 · 라벨 방향만 맞춤: 자르지 않고 원본 방향만 · 작업 따라 배우기: 작업자가 직접 자른 만큼을 배워서 다음 장도 그만큼 (이 PC 안에서만 학습)</small></div><select class="inp" id="sAutoNext"><option value="hp">끔</option><option value="auto">라벨 방향만 맞춤</option><option value="learn">작업 따라 배우기</option></select></div>
   <div class="set-row"><div>라벨 번호로 방향 맞춤<small>오른쪽 아래 4자리 라벨 번호가 정면으로 보이게 90° 단위 회전</small></div><select class="inp" id="sLabel"><option value="0">끔</option><option value="1">켬</option></select></div>
   <div class="set-row"><div>학습 (이 PC 안에서만)<small>[학습하기]: 지금 폴더의 원본↔보정본 짝(최대 40장)을 비교해 사람이 자른 만큼을 배움 · 작업하며 직접 자른 장도 계속 배움<br><span id="sLearnTxt">—</span></small></div><div style="display:flex;gap:6px;flex:none"><button class="btn btn-green btn-sm" id="sLearnRun">학습하기</button><button class="btn btn-dark btn-sm" id="sLearnReset">초기화</button></div></div>
+  <div class="set-row feat-row"><div>기능 보이기·숨기기<small>쓰지 않는 기능은 꺼 두면 화면에서 사라지고 단축키도 막혀요</small><div class="feats" id="sFeats"></div></div></div>
+  <div class="set-row"><div>원본·보정본 이미지 위치<small>가운데로 붙이기: 두 이미지를 가운데로 모아 나란히 · 각 화면 가운데: 화면마다 가운데</small></div><select class="inp" id="sVAlign"><option value="inner">가운데로 붙이기</option><option value="center">각 화면 가운데</option></select></div>
+  <div class="set-row"><div>두 이미지 사이 간격<small>가운데로 붙일 때 두 이미지 사이 거리(px) · 한 번 정하면 계속 유지</small></div><input class="inp" id="sVGap" type="number" min="0" max="400" step="4" style="width:90px"></div>
   <div class="set-row"><div>미리보기 해상도<small>클수록 돋보기가 선명, 작을수록 빠름</small></div><select class="inp" id="sPreview"><option value="1600">1600 px · 빠름</option><option value="2400">2400 px · 기본</option><option value="3200">3200 px · 선명</option></select></div>
   <div class="set-row"><div>기울기 경고 기준<small>이 각도 이상이면 경고 칩 표시</small></div><input class="inp" type="number" id="sSkew" step="0.05" min="0.05"></div>
   <div class="set-row"><div>다음 파일 미리 읽기<small>네트워크 드라이브가 느리면 2로</small></div><select class="inp" id="sPrefetch"><option value="0">끄기</option><option value="1">1장</option><option value="2">2장</option></select></div>
@@ -984,6 +999,15 @@ function outDims(){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edit
   return{w:Math.round(w*s),h:Math.round(h*s),rw,rh,cw:Math.round(w),ch:Math.round(h)}}
 
 /* ======================= viewer ======================= */
+/* 기능 보이기·숨기기 (설정) */
+const FEATS=[['zoom','확대·축소'],['rotate','자유 회전'],['crop','크롭'],['rsel','사각형 선택'],['esel','원형 선택'],['lasso','다각형 올가미'],['heal','힐링'],['stamp','복제 도장'],['erase','지우개'],['brush','브러시'],['pen','펜'],['bucket','페인트통'],['@auto','자동 보정 영역'],['@play','자동 넘김'],['@oedit','원본 수정'],['@color','색 보정'],['@curve','곡선']];
+const HIDE=new Set((()=>{try{return JSON.parse(localStorage.getItem('scanqc:hide')||'[]')}catch(e){return[]}})());
+function applyHide(){document.querySelectorAll('#segTool button[data-v]').forEach(b=>b.hidden=HIDE.has(b.dataset.v));
+  const m={'@auto':['#secAuto'],'@play':['#pPlay','#pSec'],'@oedit':['#btnOEdit'],'@color':['#secColor'],'@curve':['#curveBox']};
+  for(const k in m)for(const sel of m[k]){const el=document.querySelector(sel);if(el)el.hidden=HIDE.has(k)}
+  if(HIDE.has(S.tool))setTool('select')}
+function renderFeats(){$('#sFeats').innerHTML=FEATS.map(([k,n])=>`<label><input type="checkbox" data-k="${k}" ${HIDE.has(k)?'':'checked'}>${n}</label>`).join('')}
+const VGAP=(()=>{const d={mode:'inner',gap:24};try{return Object.assign(d,JSON.parse(localStorage.getItem('scanqc:vgap')||'{}'))}catch(e){return d}})();
 class Viewer{
   constructor(el){this.el=el;this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
@@ -998,9 +1022,12 @@ class Viewer{
   get pct(){return this.src?this.scale*(this.kFn?this.kFn():1)*(devicePixelRatio||1)*100:100}
   setPct(p,x,y){if(!this.src)return;p=clamp(p,1,3200);if(x==null){x=this.w/2;y=this.h/2}
     const[sx,sy]=this.toSrc(x,y),s2=p/100/((this.kFn?this.kFn():1)*(devicePixelRatio||1));
-    this.zoom=s2/this.fitS;this.px=x-sx*s2-(this.w-this.src.width*s2)/2;this.py=y-sy*s2-(this.h-this.src.height*s2)/2;
+    this.zoom=s2/this.fitS;this.px=x-sx*s2-this.baseX(s2);this.py=y-sy*s2-(this.h-this.src.height*s2)/2;
     this.render();maybeHQ(this)}
-  get origin(){const s=this.scale;return[(this.w-this.src.width*s)/2+this.px,(this.h-this.src.height*s)/2+this.py]}
+  /* 두 이미지를 가운데로 붙임: 원본은 오른쪽, 보정본은 왼쪽으로 · 사이 간격(VGAP)은 설정에서 고정 */
+  alignOff(s){const o=this.pair&&this.pair();if(!this.side||VGAP.mode==='center'||!o||o.w<60||o.h<60)return 0;const slack=(this.w-this.src.width*s)/2-VGAP.gap/2;return slack>0?this.side*slack:0}
+  baseX(s){return(this.w-this.src.width*s)/2+this.alignOff(s)}
+  get origin(){const s=this.scale;return[this.baseX(s)+this.px,(this.h-this.src.height*s)/2+this.py]}
   toSrc(x,y){const s=this.scale,[ox,oy]=this.origin;return[(x-ox)/s,(y-oy)/s]}
   toScr(x,y){const s=this.scale,[ox,oy]=this.origin;return[ox+x*s,oy+y*s]}
   setSrc(src,keep){const same=keep&&this.src&&src&&Math.abs(this.src.width/this.src.height-src.width/src.height)<.002;
@@ -1014,7 +1041,7 @@ class Viewer{
     if(this.overlay)this.overlay(c,this);if(this.onZoom)this.onZoom(this)}
 }
 $('#paneO .pane-head').insertBefore($('#zbO'),$('#btnOEdit'));$('#paneH .pane-head').appendChild($('#zbH'));
-const vO=new Viewer($('#viewO')),vH=new Viewer($('#viewH'));vO.pair=()=>vH;vH.pair=()=>vO;S.ev=vH;
+const vO=new Viewer($('#viewO')),vH=new Viewer($('#viewH'));vO.pair=()=>vH;vH.pair=()=>vO;vO.side=1;vH.side=-1;S.ev=vH;
 /* 화면 이미지 1픽셀 = 원본 몇 픽셀인지 (미리보기 해상도 보정) */
 vH.kFn=()=>{try{return S.cur&&stageC.cv?stageK():1}catch(e){return 1}};
 vO.kFn=()=>{try{if(!S.cur||!vO.src)return 1;if(S.origEdit)return stageK();const p=preOf(),m=p?preMeta(p):S.cur.info.orig.meta;return vO.src.width/m.w}catch(e){return 1}};
@@ -1240,7 +1267,7 @@ function retarget(e,oldT){const newT=e.rot+e.tilt,d=newT-oldT;if(Math.abs(d)<1e-
 function setRot(deg){if(!S.cur)return;commit(e=>{const o=e.rot+e.tilt;e.rot=deg;retarget(e,o)},false)}
 function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100)/100;retarget(e,o)}
 function addTilt(d){if(!S.cur)return;if(S.tool==='crop'&&S.pending){S.pending={...S.pending,a:Math.round(((S.pending.a||0)-d)*100)/100};S.ev.render();return}commit(e=>setTilt(e,e.tilt+d))}
-function setTool(t){if(!S.cur&&t!=='select')return;S.poly=null;
+function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}S.poly=null;
   if(t==='crop'){S.pending=S.edits.crop?clone(S.edits.crop):{x:0,y:0,w:1,h:1}}else S.pending=null;
   S.tool=t;S.hover=null;$('#viewH').className='view t-'+t;if(!S.origEdit)$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select');renderRight();syncUI()}
 function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;
@@ -1286,7 +1313,7 @@ function renderRight(mode){const V=S.ev;if(!S.cur){vH.setSrc(null);return}
   V.src=src;V.info=info;
   if(wasFit){V.zoom=1;V.px=V.py=0}
   else{const s2=sFull/k;V.zoom=s2/V.fitS;const px=fx*info.W-info.ox,py=fy*info.H-info.oy;
-    V.px=(V.w/2-px*s2)-(V.w-src.width*s2)/2;V.py=(V.h/2-py*s2)-(V.h-src.height*s2)/2}
+    V.px=(V.w/2-px*s2)-V.baseX(s2);V.py=(V.h/2-py*s2)-(V.h-src.height*s2)/2}
   V.render();updateCropBar()}
 function renderLeft(){if(!S.cur||S.origEdit)return;const p=preOf();vO.setSrc(p?preCanvas(p):S.cur.imgO,true);
   $('#oTag').hidden=!p;const m=p?preMeta(p):(S.cur.info.orig&&S.cur.info.orig.meta);$('#hO').textContent=m?`${m.w}×${m.h}`:'원본 없음'}
@@ -1303,7 +1330,8 @@ function autoEdits(side){const inf=S.cur&&S.cur.info[side];if(!inf)return null;c
   if(side==='orig'){const p=preOf();if(p){e.pre=clone(p);return e}}
   // 라벨 번호가 정면으로 보이게 90° 단위로 돌림 (기울기는 건드리지 않음)
   const r=(S.cfg.label_rot!==false&&inf.label&&inf.label.rot)||0;e.rot=r;
-  let t=inf.trim||{l:0,t:0,r:0,b:0},W=inf.meta.w,H=inf.meta.h;
+  // 원본에서 자동으로 잘라내는 기능은 없앰 (회전만) · 자르기는 사람이 직접 또는 '작업 따라 배우기'로만
+  let t={l:0,t:0,r:0,b:0},W=inf.meta.w,H=inf.meta.h;
   if(r===90){t={l:t.b,t:t.l,r:t.t,b:t.r};[W,H]=[H,W]}else if(r===180)t={l:t.r,t:t.b,r:t.l,b:t.t};else if(r===270){t={l:t.t,t:t.r,r:t.b,b:t.l};[W,H]=[H,W]}
   if(t.l||t.t||t.r||t.b)e.crop={x:t.l/W,y:t.t/H,w:(W-t.l-t.r)/W,h:(H-t.t-t.b)/H};
   return e}
@@ -1646,7 +1674,7 @@ function foldTxt(){const sn=$('#srcName');let t=sn&&!sn.hidden?sn.title:'';if(!t
 $('#foldF').onclick=()=>{FOLD.f=!FOLD.f;foldTxt();saveFold();applyFold()};
 $('#foldS').onclick=()=>{FOLD.s=!FOLD.s;saveFold();applyFold()};
 for(const id of['secAuto','secRot']){const el=$('#'+id);if(!el)continue;el.querySelector('.sec-h').addEventListener('click',e=>{if(e.target.closest('.sw,input,button,select'))return;FOLD[id]=!FOLD[id];saveFold();applyFold()})}
-applyFold();foldTxt();
+applyFold();foldTxt();applyHide();
 $('#btnFoldO').onclick=()=>setSolo(true);$('#btnUnfoldO').onclick=()=>setSolo(false);
 try{if(localStorage.getItem('scanqc:solo'))setTimeout(()=>setSolo(true),0)}catch(e){}
 
@@ -1668,11 +1696,13 @@ async function resolveTyped(k){const v=unq($(DIRI[k]).value);L.path[k]=v;
   const n=normPath(v);for(const r of await Engine.IDB.all().catch(()=>[])){
     const pth=k==='orig'?r.origPath:r.hpPath;if(pth&&normPath(pth)===n&&r[k]){L[k]=r[k];syncDirs();return true}}
   L[k]=null;$(DIRI[k]).closest('.inp-wrap').classList.remove('ok');return false}
+/* 입력한 경로가 이미 다른 폴더의 경로로 기억돼 있으면(같은 이름 다른 폴더) 그 경로를 붙이지 않음 */
+async function pathOwnedByOther(k,path,h){for(const r of await Engine.IDB.all().catch(()=>[])){try{const pth=k==='orig'?r.origPath:r.hpPath;if(pth&&normPath(pth)===normPath(path)&&r[k]&&!(await r[k].isSameEntry(h)))return true}catch(e){}}return false}
 async function knownPath(k,h){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(r[k]&&await r[k].isSameEntry(h))return(k==='orig'?r.origPath:r.hpPath)||''}catch(e){}}return''}
 async function pickDir(which){
   if(!window.showDirectoryPicker){toast('이 브라우저는 PC 폴더를 열 수 없어요 · PC용 Edge 또는 Chrome을 사용하세요','err',6000);return}
   try{const h=await showDirectoryPicker({id:'scanqc-'+which,mode:which==='hp'?'readwrite':'read',startIn:L[which]||'documents'});L[which]=h;
-    const cur=unq($(DIRI[which]).value);L.path[which]=cur&&lastSeg(cur)===h.name.toLowerCase()?cur:await knownPath(which,h);$(DIRI[which]).value='';syncDirs();
+    const cur=unq($(DIRI[which]).value),kn=await knownPath(which,h),clash=cur&&await pathOwnedByOther(which,cur,h);L.path[which]=cur&&lastSeg(cur)===h.name.toLowerCase()&&!clash?cur:kn;$(DIRI[which]).value='';syncDirs();
     if(L.orig&&L.hp)toast('두 폴더가 준비됐어요 · 불러오기를 누르세요')}
   catch(e){if(e.name!=='AbortError')toast('폴더를 열 수 없어요 · '+e.message,'err',5000)}}
 async function perm(h,mode){try{if(await h.queryPermission({mode})==='granted')return true;return await h.requestPermission({mode})==='granted'}catch(e){return false}}
@@ -1688,7 +1718,8 @@ async function openLocal(rec){
   L.orig=o;L.hp=h;syncDirs();
   if(!rec){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(await r.hp.isSameEntry(h)&&await r.orig.isSameEntry(o)){rec=r;break}}catch(e){}}}
   if(!rec)rec={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),statuses:{},last:null,logs:[]};
-  const lab=(k,hd)=>{const v=unq($(DIRI[k]).value);return v&&lastSeg(v)===hd.name.toLowerCase()&&/[\\/]/.test(v)&&normPath(v)!==normPath(rec[k+'Path'])?v:rec[k+'Path']&&normPath(v)===normPath(rec[k+'Path'])?rec[k+'Path']:(L.path[k]&&lastSeg(L.path[k])===hd.name.toLowerCase()?L.path[k]:(rec[k+'Path']||''))};
+  const CL={orig:await pathOwnedByOther('orig',unq($(DIRI.orig).value),o),hp:await pathOwnedByOther('hp',unq($(DIRI.hp).value),h)};
+  const lab=(k,hd)=>{const v=CL[k]?'':unq($(DIRI[k]).value);return v&&lastSeg(v)===hd.name.toLowerCase()&&/[\\/]/.test(v)&&normPath(v)!==normPath(rec[k+'Path'])?v:rec[k+'Path']&&normPath(v)===normPath(rec[k+'Path'])?rec[k+'Path']:(L.path[k]&&lastSeg(L.path[k])===hd.name.toLowerCase()?L.path[k]:(rec[k+'Path']||''))};
   Object.assign(rec,{orig:o,hp:h,origName:o.name,hpName:h.name,origPath:lab('orig',o),hpPath:lab('hp',h),updated:Date.now()});
   await startSource(new Engine.LocalSource(o,h,rec),$('#btnOpen'));renderRecent()}
 /* 파일 하나만 열어 보정: 원본 = 연 순간의 내용(메모리 사본 · 저장해도 그대로), 저장 = 그 파일에 덮어쓰기 (처음 덮어쓸 때 브라우저 안에 백업) */
@@ -1891,8 +1922,10 @@ $('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.data
     try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)}};
 $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.value);
 $('#pHelp').onclick=()=>$('#mHelp').classList.add('show');
-$('#btnSettings').onclick=()=>{$('#sAutoNext').value=['auto','learn'].includes(S.cfg.on_load)?S.cfg.on_load:'hp';$('#sLabel').value=S.cfg.label_rot?'1':'0';syncLearn();$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
-$('#sSave').onclick=async()=>{const b={on_load:$('#sAutoNext').value,label_rot:$('#sLabel').value==='1',preview:+$('#sPreview').value,skew_warn:+$('#sSkew').value,prefetch:+$('#sPrefetch').value,backup:$('#sBackup').value==='1'};
+$('#btnSettings').onclick=()=>{renderFeats();$('#sVAlign').value=VGAP.mode;$('#sVGap').value=VGAP.gap;$('#sAutoNext').value=['auto','learn'].includes(S.cfg.on_load)?S.cfg.on_load:'hp';$('#sLabel').value=S.cfg.label_rot?'1':'0';syncLearn();$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
+$('#sSave').onclick=async()=>{HIDE.clear();$$('#sFeats input').forEach(i=>{if(!i.checked)HIDE.add(i.dataset.k)});try{localStorage.setItem('scanqc:hide',JSON.stringify([...HIDE]))}catch(e){}applyHide();
+    VGAP.mode=$('#sVAlign').value;VGAP.gap=clamp(+$('#sVGap').value||0,0,400);try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}vO.render();vH.render();
+    const b={on_load:$('#sAutoNext').value,label_rot:$('#sLabel').value==='1',preview:+$('#sPreview').value,skew_warn:+$('#sSkew').value,prefetch:+$('#sPrefetch').value,backup:$('#sBackup').value==='1'};
   try{const r=await api.post('/api/settings',b);S.cfg=r.cfg;$('#mSet').classList.remove('show');toast('설정을 저장했어요');if(S.idx>=0){if(!dirty())delete S.memo[S.cur.name];go(S.idx)}}catch(e){toast(e.message,'err')}};
 $('#sLearnRun').onclick=()=>{if(!S.files||!S.files.length){toast('먼저 폴더를 불러오세요','warn');return}runLearn()};
 $('#sLearnReset').onclick=()=>{try{localStorage.removeItem(LEARN_KEY)}catch(e){}syncLearn();toast('학습 기록을 지웠어요')};
