@@ -49,6 +49,8 @@ input,select{font:inherit;color:var(--text)}
 .field{margin-bottom:10px}
 .field label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);font-weight:600;margin-bottom:6px}
 .inp{width:100%;background:var(--elev2);border:1px solid transparent;border-radius:6px;padding:8px 10px;outline:none;font-size:13px;transition:.15s}
+/* 마우스로 누른 버튼에 흰 테두리(포커스 표시)가 남지 않게 · 키보드 이동 때만 옅게 */
+button:focus,a:focus,.cbtn:focus{outline:none}button:focus-visible,a:focus-visible{outline:2px solid rgba(91,140,255,.55);outline-offset:2px}
 .inp:hover{border-color:#3e3e3e}.inp:focus{border-color:var(--sub);background:#333}
 .inp-wrap{position:relative}
 .inp-wrap .inp{padding-right:44px}
@@ -515,7 +517,7 @@ a.btn{text-decoration:none}
           <div class="big" data-i="scan-line" data-s="30"></div>
           <h2>폴더를 불러와 검수를 시작하세요</h2>
           <div>설치 없이 브라우저에서 바로 · 대용량 스캔본도 한 장씩 불러와요</div>
-          <ol><li><b>내 PC 폴더</b>: 원본 폴더와 저장할 보정본(HP) 폴더 선택 → 불러오기</li><li>원본에서 자동 보정(기울기·크롭)된 결과가 오른쪽에 표시</li><li>이상 없으면 <kbd>Space</kbd> (저장 후 다음) · 잘못된 장만 고친 뒤 <kbd>Space</kbd></li><li><b>팀 작업</b>은 로그인 후 배정된 작업 묶음을 열어요</li></ol>
+          <ol><li><b>내 PC 폴더</b>: 원본 폴더와 저장할 보정본(HP) 폴더 선택 → 불러오기</li><li>오른쪽에 보정본 파일이 그대로 표시</li><li>이상 없으면 <kbd>Space</kbd> (저장 후 다음) · 잘못된 장만 고친 뒤 <kbd>Space</kbd></li><li><b>팀 작업</b>은 로그인 후 배정된 작업 묶음을 열어요</li></ol>
         </div>
       </div>
     </div>
@@ -534,7 +536,7 @@ a.btn{text-decoration:none}
         <div class="toggle" id="tLabel" title="오른쪽 아래 4자리 라벨 번호(예: 0639)가 다른 모서리에 있거나 옆으로 누워 있으면 90° 단위로 돌려 정면으로 맞춰요"><span>라벨 번호로 방향 맞춤</span><span class="sw" id="swLabel"></span></div>
         <div class="trim-unit" hidden><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
         <div class="grid2 mt8">
-          <button class="btn btn-white btn-sm" id="btnAutoOrig" title="원본에서 자동 보정 다시 적용 (F)">다시 적용 F</button>
+          
           <button class="btn btn-dark btn-sm" id="btnPaste" title="직전에 수정한 보정을 그대로 (V)">이전 보정 V</button>
         </div>
       </div>
@@ -628,7 +630,7 @@ a.btn{text-decoration:none}
         <button class="cbtn" id="pPrev" data-tip="이전 ← (수정했으면 자동 저장)" data-i="skip-back"></button>
         <button class="cbtn" id="pCopy" data-tip="원본 그대로 복사 Q" data-i="copy"></button>
         <button class="play" id="pSave" title="확인 후 다음 (Space) · 자동 저장" data-i="check" data-s="22"></button>
-        <button class="cbtn" id="pAuto" data-tip="자동 보정 다시 적용 F" data-i="sparkles"></button>
+        
         <button class="cbtn" id="pNext" data-tip="다음 → (자동 저장)" data-i="skip-forward"></button>
         <button class="cbtn" id="pPlay" data-tip="자동 넘김 N · 확인·저장하며 넘김" data-i="play"></button>
         <button class="cbtn csec" id="pSec" data-tip="자동 넘김 간격 선택">3초</button>
@@ -657,7 +659,7 @@ a.btn{text-decoration:none}
     <ol>
       <li><b>폴더 지정</b> — 왼쪽 위에 원본 폴더와 보정본(HP) 폴더를 넣고 <b>불러오기</b></li>
       <li><b>파일 하나만</b> — <b>파일 하나만 열어 보정</b> (또는 이미지를 창에 끌어다 놓기) → 고친 뒤 <kbd>Space</kbd> 면 그 파일에 저장 · 처음 모습은 왼쪽 원본에 남아요</li>
-      <li><b>검수</b> — 오른쪽에 보정본 파일이 그대로 보여요. 이상 없으면 <kbd>Space</kbd> → 다음 장 · 가장자리 정리가 필요하면 <kbd>F</kbd> (자동 보정 스위치를 켜면 불러올 때마다 적용)</li>
+      <li><b>검수</b> — 오른쪽에 보정본 파일이 그대로 보여요. 이상 없으면 <kbd>Space</kbd> → 다음 장</li>
       <li><b>필요한 장만 고치기</b> — 회전 <kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd>, 기울기 <kbd>,</kbd><kbd>.</kbd>, 크롭 <kbd>C</kbd>, 잡티 힐링 <kbd>J</kbd> 등 → <kbd>Space</kbd></li>
       <li><b>크롭</b> <kbd>C</kbd> — 모서리·상하좌우 선을 끌거나, 아래 좌·상·우·하 칸에 px 입력 · 잡은 변은 방향키로 1px (<kbd>Shift</kbd> 10px) · <kbd>R</kbd> 확정</li>
       <li><b>보정이 어려우면</b> <kbd>Q</kbd> — 원본을 그대로 보정본으로 저장</li>
@@ -675,7 +677,6 @@ a.btn{text-decoration:none}
     <div><span>회전 0° / 90° / 180° / 270°</span><span><kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd></span></div>
     <div><span>기울기 −0.5° / +0.5°</span><span><kbd>,</kbd><kbd>.</kbd></span></div>
     <div><span>기울기 −0.1° / +0.1°</span><span><kbd>Shift</kbd><kbd>,</kbd><kbd>.</kbd></span></div>
-    <div><span>자동 보정 다시 적용 / 보정본 정리</span><span><kbd>F</kbd><kbd>Shift F</kbd></span></div>
     <div><span>자유 회전 (드래그 · Shift=1°)</span><span><kbd>T</kbd></span></div>
     <div><span>원본 수정 시작 / 완료</span><span><kbd>O</kbd></span></div>
     <h4>도구</h4>
@@ -1477,7 +1478,7 @@ function syncUI(){try{secTxt()}catch(e){}
 function renderQC(){const box=$('#qc');if(!S.cur){box.innerHTML='';return}const q=qcList();
   if(!q.length){box.innerHTML=`<div class="qc-ok">${ic('circle-check',18)}${isAuto()?'자동 보정 결과 이상 없음':'자동 검사 이상 없음'} · 확인했으면 <kbd>Space</kbd></div>`;return}
   const FIX={tilt:'기울기 보정',paper:'테두리 제거',balance:'여백 균등화',orig_auto:'원본에서 자동 보정',mode_paper:'용지 경계로',mode_content:'내용+여백으로',crop:'직접 크롭'};
-  box.innerHTML=q.map(w=>`<span class="qchip ${w.level}">${ic(w.level==='error'?'circle-alert':w.level==='info'?'info':'triangle-alert',16)}${w.msg}${w.fix?`<button data-fix="${w.fix}">${FIX[w.fix]}</button>`:''}</span>`).join('');
+  box.innerHTML=q.map(w=>(['orig_auto','mode_paper','mode_content'].includes(w.fix)?{...w,fix:null}:w)).map(w=>`<span class="qchip ${w.level}">${ic(w.level==='error'?'circle-alert':w.level==='info'?'info':'triangle-alert',16)}${w.msg}${w.fix?`<button data-fix="${w.fix}">${FIX[w.fix]}</button>`:''}</span>`).join('');
   box.querySelectorAll('[data-fix]').forEach(b=>b.onclick=()=>applyFix(b.dataset.fix))}
 function renderHead(){const f=S.files[S.idx];
   $('#tName').textContent=f?f.name:'ScanQC';
@@ -1874,7 +1875,7 @@ const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit
   if(pristine&&S.autoEd){S.initEdits=clone(S.autoEd);commit(x=>Object.assign(x,clone(S.autoEd)),false)}renderQC();syncUI()},350)};
 $('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??2,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
-$('#btnAutoOrig').onclick=()=>autoFrom('orig');$('#pAuto').onclick=()=>autoFrom('orig');
+
 $('#btnPaste').onclick=pastePrev;
 $('#rotBtns').onclick=e=>{const b=e.target.closest('[data-r]');if(b)setRot(+b.dataset.r)};
 
@@ -1922,6 +1923,8 @@ $('#pBar').oninput=e=>{setRange(e.target,+e.target.value);$('#pCur').textContent
 $('#pBar').onchange=e=>jumpTo(+e.target.value-1);
 $('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pSolo').onclick=()=>setSolo(!S.solo);
 $('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
+/* 버튼을 마우스로 누른 뒤 포커스를 놓아 줌: 흰 테두리가 남지 않고, 이어서 누르는 Space·방향키가 버튼을 다시 누르지 않게 */
+addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&e.detail>0)setTimeout(()=>b.blur(),0)},true);
 $('#pPlay').onclick=()=>setAutoPlay(!S.auto);
 /* 원본·보정본 사이 간격: 단계별로 고르면 계속 유지 */
 const GAP_STEPS=[0,4,8,16,24,40,64,100,160];
@@ -1996,7 +1999,6 @@ document.addEventListener('keydown',e=>{
     case'BracketRight':if(PAINT.has(S.tool))setBrushSize(Math.max(S.brush.size[S.tool]+1,S.brush.size[S.tool]*1.2));else setMagZ(S.magZ+.5);break;
     case'KeyN':if(!e.ctrlKey&&!e.metaKey){e.preventDefault();setAutoPlay(!S.auto)}break;
     case'KeyQ':copyOriginal();break;
-    case'KeyF':if(!S.origEdit)autoFrom(sh?'hp':'orig');break;
     case'KeyV':if(!S.origEdit)pastePrev();break;
     case'KeyB':S.lastPaint='brush';setTool(S.tool==='brush'?'select':'brush');break;
     case'KeyX':$('#btnReset').click();break;
