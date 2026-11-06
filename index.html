@@ -632,6 +632,7 @@ a.btn{text-decoration:none}
         <button class="play" id="pSave" title="확인 후 다음 (Space) · 자동 저장" data-i="check" data-s="22"></button>
         
         <button class="cbtn" id="pNext" data-tip="다음 → (자동 저장)" data-i="skip-forward"></button>
+        <button class="cbtn" id="pAI" data-tip="AI 맞춤 F · 학습한 대로 자르기 (설정 → 학습하기)" data-i="sparkles"></button>
         <button class="cbtn" id="pPlay" data-tip="자동 넘김 N · 확인·저장하며 넘김" data-i="play"></button>
         <button class="cbtn csec" id="pSec" data-tip="자동 넘김 간격 선택">3초</button>
       </div>
@@ -685,6 +686,7 @@ a.btn{text-decoration:none}
     <div><span>다각형 올가미 (Enter 닫기 · Backspace 점 취소)</span><span><kbd>Y</kbd></span></div>
     <div><span>페인트통</span><span><kbd>G</kbd></span></div>
     <div><span>자동 넘김 켜기/끄기</span><span><kbd>N</kbd></span></div>
+    <div><span>AI 맞춤 (학습한 대로 자르기)</span><span><kbd>F</kbd></span></div>
     <div><span>선택 해제 / 반전 / 흰색 채우기</span><span><kbd>Ctrl D</kbd><kbd>Ctrl Shift I</kbd><kbd>Del</kbd></span></div>
     <div><span>힐링 / 도장 / 지우개 / 브러시 / 펜</span><span><kbd>J</kbd><kbd>K</kbd><kbd>E</kbd><kbd>B</kbd><kbd>P</kbd></span></div>
     <div><span>도장 원본 지점 지정</span><span><kbd>Alt</kbd>+클릭</span></div>
@@ -1007,10 +1009,10 @@ function outDims(){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edit
 
 /* ======================= viewer ======================= */
 /* 기능 보이기·숨기기 (설정) */
-const FEATS=[['zoom','확대·축소'],['rotate','자유 회전'],['crop','크롭'],['rsel','사각형 선택'],['esel','원형 선택'],['lasso','다각형 올가미'],['heal','힐링'],['stamp','복제 도장'],['erase','지우개'],['brush','브러시'],['pen','펜'],['bucket','페인트통'],['@auto','자동 보정 영역'],['@play','자동 넘김'],['@oedit','원본 수정'],['@color','색 보정'],['@curve','곡선']];
+const FEATS=[['zoom','확대·축소'],['rotate','자유 회전'],['crop','크롭'],['rsel','사각형 선택'],['esel','원형 선택'],['lasso','다각형 올가미'],['heal','힐링'],['stamp','복제 도장'],['erase','지우개'],['brush','브러시'],['pen','펜'],['bucket','페인트통'],['@auto','자동 보정 영역'],['@play','자동 넘김'],['@ai','AI 맞춤'],['@oedit','원본 수정'],['@color','색 보정'],['@curve','곡선']];
 const HIDE=new Set((()=>{try{return JSON.parse(localStorage.getItem('scanqc:hide')||'[]')}catch(e){return[]}})());
 function applyHide(){document.querySelectorAll('#segTool button[data-v]').forEach(b=>b.hidden=HIDE.has(b.dataset.v));
-  const m={'@auto':['#secAuto'],'@play':['#pPlay','#pSec'],'@oedit':['#btnOEdit'],'@color':['#secColor'],'@curve':['#curveBox']};
+  const m={'@auto':['#secAuto'],'@play':['#pPlay','#pSec'],'@ai':['#pAI'],'@oedit':['#btnOEdit'],'@color':['#secColor'],'@curve':['#curveBox']};
   for(const k in m)for(const sel of m[k]){const el=document.querySelector(sel);if(el)el.hidden=HIDE.has(k)}
   if(HIDE.has(S.tool))setTool('select')}
 function renderFeats(){$('#sFeats').innerHTML=FEATS.map(([k,n])=>`<label><input type="checkbox" data-k="${k}" ${HIDE.has(k)?'':'checked'}>${n}</label>`).join('')}
@@ -1926,6 +1928,12 @@ $('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pFocus').onclick=()=>setFocus(!AP
 $('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
 /* 버튼을 마우스로 누른 뒤 포커스를 놓아 줌: 흰 테두리가 남지 않고, 이어서 누르는 Space·방향키가 버튼을 다시 누르지 않게 */
 addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&e.detail>0)setTimeout(()=>b.blur(),0)},true);
+/* AI 맞춤: '학습하기'로 배운 자르기 폭(+라벨 방향 맞춤이 켜져 있으면 방향)만 적용 · 원본 자동 보정은 하지 않음 */
+function applyAI(){if(!S.cur||S.origEdit)return;if(!S.cur.info.orig){toast('원본 파일이 있어야 AI 맞춤을 할 수 있어요','warn');return}
+  if(!learnModel()){toast('아직 배운 게 없어요 · 설정(톱니바퀴) → 학습하기를 먼저 눌러 주세요','warn',4500);return}
+  const e=learnEdits();if(!e)return;S.autoEd=clone(e);commit(x=>Object.assign(x,clone(e)),false);renderQC();syncUI();
+  const L=learnModel();toast(`AI 맞춤 · 배운 ${L.n}장 기준 좌 ${L.l} · 위 ${L.t} · 우 ${L.r} · 아래 ${L.b} mm`,'ok',2600)}
+$('#pAI').onclick=applyAI;
 $('#pPlay').onclick=()=>setAutoPlay(!S.auto);
 /* 원본·보정본 사이 간격: 단계별로 고르면 계속 유지 */
 const GAP_STEPS=[0,4,8,16,24,40,64,100,160];
@@ -2000,6 +2008,7 @@ document.addEventListener('keydown',e=>{
     case'BracketLeft':if(PAINT.has(S.tool))setBrushSize(S.brush.size[S.tool]/1.2);else setMagZ(S.magZ-.5);break;
     case'BracketRight':if(PAINT.has(S.tool))setBrushSize(Math.max(S.brush.size[S.tool]+1,S.brush.size[S.tool]*1.2));else setMagZ(S.magZ+.5);break;
     case'KeyN':if(!e.ctrlKey&&!e.metaKey){e.preventDefault();setAutoPlay(!S.auto)}break;
+    case'KeyF':if(!e.ctrlKey&&!e.metaKey){e.preventDefault();applyAI()}break;
     case'KeyQ':copyOriginal();break;
     case'KeyV':if(!S.origEdit)pastePrev();break;
     case'KeyB':S.lastPaint='brush';setTool(S.tool==='brush'?'select':'brush');break;
