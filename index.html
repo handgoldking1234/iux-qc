@@ -300,7 +300,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np-txt small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px}
 .ctl{display:flex;flex-direction:column;align-items:center;gap:6px}
 .ctl-btns{display:flex;align-items:center;gap:16px}
-.cbtn.on{color:var(--accent)}.cbtn.csec{width:auto;min-width:32px;padding:0 6px;border-radius:12px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.cbtn.on{color:var(--accent)}.cbtn.csec{white-space:nowrap;flex:none;width:auto;min-width:32px;padding:0 6px;border-radius:12px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
 .cbtn{width:32px;height:32px;display:grid;place-items:center;color:var(--sub);border-radius:50%;transition:.15s;position:relative}
 .cbtn:hover{color:var(--text);transform:scale(1.06)}
 .cbtn[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:var(--elev2);color:#fff;font-size:12px;padding:6px 8px;border-radius:4px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none}
@@ -637,6 +637,7 @@ a.btn{text-decoration:none}
     </div>
     <div class="vol">
       <button class="cbtn" id="pFit" data-tip="화면 맞춤 0" data-i="scan"></button>
+      <button class="cbtn csec" id="pGap" data-tip="원본·보정본 사이 간격">간격</button>
       <button class="cbtn" id="pSolo" data-tip="원본 패널 표시 Shift+Tab" data-i="columns-2"></button>
       <button class="cbtn" id="pMag" data-tip="돋보기 M" data-i="zoom-in"></button>
       <input type="range" id="magZ" min="2" max="10" step="0.5" title="돋보기 배율"><span id="magZTxt">3×</span>
@@ -917,7 +918,7 @@ function copyCanvas(src){const c=mk(src.width,src.height);c.getContext('2d').dra
 function stageFull(){const m=baseMeta();return rotDims(m.w,m.h,S.edits.rot+S.edits.tilt)}
 function stageK(){const st=stageC.cv||buildStage();return st.width/stageFull()[0]}
 function buildStage(){
-  const e=S.edits,im=baseImg(),bkey=JSON.stringify([S.cur.name,baseSide(),S.origEdit?'E':preOf(),e.rot,e.tilt,e.erases,e.color,e.locals]);
+  const e=S.edits,im=baseImg(),bkey=JSON.stringify([S.loadSeq,S.cur.name,baseSide(),S.origEdit?'E':preOf(),e.rot,e.tilt,e.erases,e.color,e.locals]);
   if(baseC.key!==bkey){
     const W=im.naturalWidth||im.width,H=im.naturalHeight||im.height,[rw,rh]=rotDims(W,H,e.rot+e.tilt);
     const cv=mk(Math.round(rw),Math.round(rh));
@@ -1060,7 +1061,7 @@ for(const[v,id]of[[vO,'#zbO'],[vH,'#zbH']]){const bar=$(id);
       m.innerHTML=[3200,1600,800,400,200,100,66.67,50,33.33,25,12.5,6.25].map(p=>`<button data-p="${p}">${fmtPct(p)}</button>`).join('')+'<button data-p="fit">화면 맞춤</button>';
       m.dataset.for='zoom';m.style.display='block';m.style.left=Math.min(r.left,innerWidth-110)+'px';m.style.top=(r.top-m.offsetHeight-6<8?Math.min(r.bottom+6,innerHeight-m.offsetHeight-8):r.top-m.offsetHeight-6)+'px';m.style.left=Math.min(r.left,innerWidth-m.offsetWidth-8)+'px';
       m.onclick=ev=>{const t=ev.target.closest('[data-p]');if(!t)return;t.dataset.p==='fit'?v.fit():v.setPct(+t.dataset.p);m.style.display='none'}}}}
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('#zmenu,.zpct,#pSec'))$('#zmenu').style.display='none'});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#zmenu,.zpct,#pSec,#pGap'))$('#zmenu').style.display='none'});
 /* 미리보기 해상도보다 크게 확대하면 원본 해상도 이미지를 불러와 교체 (100% 이상도 선명하게) */
 function maybeHQ(v){if(!S.cur||S.cur.hq||!v.src)return;if(v.scale*(devicePixelRatio||1)>1.05)loadHQ()}
 async function loadHQ(){const cur=S.cur;if(!cur||cur.hq)return;cur.hq='loading';const f=cur.name,inf=cur.info;
@@ -1556,8 +1557,9 @@ async function go(i){
   finally{if(seq===S.loadSeq)setLoading(false)}}
 
 /* 자동 넘김: 화면에 다 뜬 뒤 정한 초만큼 보여 주고 확인·저장 → 다음. 확인이 필요한 파일·마지막 파일에서 멈춤, 아무 키·클릭이면 멈춤 */
-const AUTO_SECS=[1,2,3,5,8,10,15];
-function secTxt(){$('#pSec').textContent=(+S.cfg.auto_sec||3)+'초'}
+const AUTO_SECS=[0.5,0.75,1,1.25,1.5,2,3,5,8,10,15];
+function secTxt(){$('#pSec').textContent=(+S.cfg.auto_sec||3)+'초';gapTxt()}
+function gapTxt(){const b=$('#pGap');if(b)b.textContent=VGAP.mode==='center'?'간격 ·':'간격 '+VGAP.gap}
 function setAutoPlay(on,msg){S.auto=!!on;clearTimeout(S.autoT);S.autoK=null;const b=$('#pPlay');b.classList.toggle('on',S.auto);b.innerHTML=ic(S.auto?'pause':'play',18);
   if(S.auto){if(!S.cur){S.auto=false;b.classList.remove('on');b.innerHTML=ic('play',18);return}S.autoLast=-1;autoLoop()}
   toast(msg||(S.auto?`자동 넘김 시작 · ${+S.cfg.auto_sec||3}초마다 확인·저장 · 아무 키나 클릭하면 멈춰요`:'자동 넘김 멈춤'),msg&&!S.auto?'warn':'ok',2600)}
@@ -1921,6 +1923,18 @@ $('#pBar').onchange=e=>jumpTo(+e.target.value-1);
 $('#pFit').onclick=()=>{vO.fit();vH.fit()};$('#pSolo').onclick=()=>setSolo(!S.solo);
 $('#btnHelp').onclick=()=>$('#mHelp').classList.add('show');
 $('#pPlay').onclick=()=>setAutoPlay(!S.auto);
+/* 원본·보정본 사이 간격: 단계별로 고르면 계속 유지 */
+const GAP_STEPS=[0,4,8,16,24,40,64,100,160];
+$('#pGap').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.dataset.for==='gap'){m.style.display='none';return}
+  const r=$('#pGap').getBoundingClientRect(),cur=VGAP.mode==='center'?'c':VGAP.gap;m.dataset.for='gap';
+  m.innerHTML='<div class="zm-h">원본·보정본 사이 간격</div>'+GAP_STEPS.map(n=>`<button data-g="${n}" class="${cur===n?'on':''}">${n?n+'px':'붙이기 (0)'}</button>`).join('')+`<button data-g="c" class="${cur==='c'?'on':''}">각 화면 가운데</button>`;
+  m.style.display='block';m.style.left=Math.min(r.left+r.width/2-m.offsetWidth/2,innerWidth-m.offsetWidth-8)+'px';m.style.top=(r.top-m.offsetHeight-8)+'px';
+  m.onclick=ev=>{const t=ev.target.closest('[data-g]');if(!t)return;m.style.display='none';if(t.dataset.g==='c')VGAP.mode='center';else{VGAP.mode='inner';VGAP.gap=+t.dataset.g}
+    try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}gapTxt();vO.fit();vH.fit();toast(VGAP.mode==='center'?'각 화면 가운데로 보여요':'두 이미지 사이 간격 '+VGAP.gap+'px','ok',1400)}};
+/* [ ] 처럼 Alt+← → 로 간격 한 단계씩 */
+addEventListener('keydown',e=>{if(!e.altKey||!['ArrowLeft','ArrowRight'].includes(e.key)||e.target.closest('input,textarea,select'))return;e.preventDefault();e.stopImmediatePropagation();
+  const i=GAP_STEPS.findIndex(n=>n>=VGAP.gap),j=Math.max(0,Math.min(GAP_STEPS.length-1,(i<0?GAP_STEPS.length-1:i)+(e.key==='ArrowRight'?1:-1)));VGAP.mode='inner';VGAP.gap=GAP_STEPS[j];
+  try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}gapTxt();vO.render();vH.render();toast('두 이미지 사이 간격 '+VGAP.gap+'px','ok',1000)},true);
 $('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.dataset.for==='sec'){m.style.display='none';return}
   const c=+S.cfg.auto_sec||3,r=$('#pSec').getBoundingClientRect();m.dataset.for='sec';
   m.innerHTML='<div class="zm-h">자동 넘김 간격</div>'+AUTO_SECS.map(n=>`<button data-s="${n}" class="${n===c?'on':''}">${n}초</button>`).join('');
