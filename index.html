@@ -242,7 +242,7 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .cropbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:#fff;color:#000;border-radius:var(--pill);padding:6px 6px 6px 16px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:3;white-space:nowrap}
 .cropbar.show{display:flex}
 .cropbar .btn-dark{background:#eee;color:#000}.cropbar .btn-dark:hover{background:#ddd}
-.qc{display:flex;gap:8px;align-items:center;padding:12px 16px 14px;min-height:56px;overflow-x:auto;scrollbar-width:none}
+.qc{display:flex;gap:8px;align-items:center;justify-content:safe center;padding:12px 16px 14px;min-height:56px;overflow-x:auto;scrollbar-width:none}
 .qc::-webkit-scrollbar{display:none}
 .qc-ok{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:13px;padding-left:4px}
 .qc-ok .i{color:var(--ok)}
@@ -354,6 +354,9 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 
 /* ---- 패널 접기 · 반응형 ---- */
 .app.ins-closed{--insw:56px}
+.ins>.toolbar{position:static;margin:6px auto 0;align-self:center;box-shadow:none;background:transparent;border:0;padding:2px}
+.app:not(.ins-closed) .ins>.toolbar{display:none}
+@media(min-width:861px){.app.tools-in-ins .panes{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 0}.app.tools-in-ins .panes.solo{grid-template-columns:0 minmax(0,1fr) 0}}
 .ins-closed .ins-body{display:none}
 .ins-closed .ins-head{flex-direction:column;height:auto;padding:16px 8px 8px}
 .ins-closed .ins-head h2{display:none}
@@ -1546,7 +1549,7 @@ async function go(i){
     vO.setSrc(imgO,false);renderRight('reset');renderLeft();
     if(S.edits.pre&&S.edits.base==='orig'){const p=S.edits.pre;api.post('/api/analyze',{name:f.name,pre:p}).then(fx=>{if(S.cur&&S.cur.name===f.name){S.cur.fix={key:JSON.stringify(p),an:fx.an};renderQC()}}).catch(()=>{})}
     renderHead();renderQC();syncUI();renderPlayer();updateRow(i);updateStats();
-    $('#welcome').style.display='none';$('#app').classList.add('loaded');if(!S.origEdit&&$('#segTool').parentElement.id!=='paneH')moveTools('#paneH');
+    $('#welcome').style.display='none';$('#app').classList.add('loaded');if(!S.origEdit)placeTools();
     const pf=+(S.cfg.prefetch??1);if(pf>0){const names=S.files.slice(i+1,i+1+pf).map(x=>x.name);if(names.length)api.post('/api/prefetch',{names}).catch(()=>{})}
   }catch(e){if(seq===S.loadSeq){toast(e.message,'err',4000);S.cur=null;vO.setSrc(null);vH.setSrc(null);renderQC()}}
   finally{if(seq===S.loadSeq)setLoading(false)}}
@@ -1631,7 +1634,10 @@ function curLocal(create){if(!S.sel||!S.edits)return null;const k=JSON.stringify
   if(!L&&create){L={sel:clone(S.sel),color:defColor()};S.edits.locals=S.edits.locals||[];S.edits.locals.push(L)}return L}
 function colorObj(create){const L=curLocal(create),c=L?L.color:(S.sel?defColor():S.edits.color);
   if(!c.cv)c.cv={rgb:clone(ID_CURVE),r:clone(ID_CURVE),g:clone(ID_CURVE),b:clone(ID_CURVE)};if(!c.cb)c.cb={s:[0,0,0],m:[0,0,0],h:[0,0,0]};return c}
-function moveTools(pane){const pn=$(pane);pn.appendChild($('#segTool'));pn.appendChild($('#cropbar'))}
+/* 오른쪽 보정 패널을 접으면 도구 막대는 그 접힌 패널 안으로 (이미지 영역을 가리지 않게) */
+function moveTools(pane){const pn=$(pane),toIns=pane==='#paneH'&&APP.classList.contains('ins-closed')&&!MOB.matches;(toIns?document.querySelector('.ins'):pn).appendChild($('#segTool'));pn.appendChild($('#cropbar'));
+  APP.classList.toggle('tools-in-ins',toIns);requestAnimationFrame(()=>{vO.resize();vH.resize()})}
+function placeTools(){if(!APP.classList.contains('loaded'))return;moveTools(S.origEdit?'#paneO':'#paneH')}
 function enterOrigEdit(){if(!S.cur||S.origEdit)return;if(S.solo)setSolo(false);if(!S.cur.info.orig){toast('원본 파일이 없습니다','warn');return}
   if(S.tool==='crop'&&S.pending)cancelCrop();if(S.solo)setSolo(false);
   const cur=(S.edits.base==='orig'&&S.edits.pre)?S.edits.pre:null,e=defaultEdits('orig');if(cur)Object.assign(e,clone(cur));e.base='orig';delete e.pre;
@@ -1842,12 +1848,12 @@ $('#list').onclick=e=>{const r=e.target.closest('.row');if(r){jumpTo(+r.dataset.
 const APP=$('#app'),MOB=matchMedia('(max-width:860px)');
 const PNL={get(){try{return JSON.parse(localStorage.getItem('scanqc:panels')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('scanqc:panels',JSON.stringify(v))}catch(e){}}};
 function togglePanel(w){if(MOB.matches){const o=w+'-open',on=!APP.classList.contains(o);APP.classList.remove('lib-open','ins-open');APP.classList.toggle(o,on);return}
-  APP.classList.toggle(w+'-closed');PNL.set({lib:APP.classList.contains('lib-closed'),ins:APP.classList.contains('ins-closed')})}
+  APP.classList.toggle(w+'-closed');PNL.set({lib:APP.classList.contains('lib-closed'),ins:APP.classList.contains('ins-closed')});placeTools()}
 let panelBand=null;
 function layoutPanels(){const w=innerWidth,band=MOB.matches?0:w<980?1:w<1180?2:3;if(band===panelBand)return;panelBand=band;
   if(band===0){APP.classList.remove('lib-closed','ins-closed');return}
   APP.classList.remove('lib-open','ins-open');const p=PNL.get()||{};
-  APP.classList.toggle('lib-closed',band<=2||!!p.lib);APP.classList.toggle('ins-closed',band<=1||!!p.ins)}
+  APP.classList.toggle('lib-closed',band<=2||!!p.lib);APP.classList.toggle('ins-closed',band<=1||!!p.ins);try{placeTools()}catch(e){}}
 layoutPanels();addEventListener('resize',()=>{clearTimeout(layoutPanels.t);layoutPanels.t=setTimeout(layoutPanels,120)});
 $('#btnLib').onclick=()=>togglePanel('lib');$('#btnIns').onclick=()=>togglePanel('ins');
 $('#mLib').onclick=()=>togglePanel('lib');$('#mIns').onclick=()=>togglePanel('ins');
