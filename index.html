@@ -1014,7 +1014,7 @@ function applyHide(){document.querySelectorAll('#segTool button[data-v]').forEac
   for(const k in m)for(const sel of m[k]){const el=document.querySelector(sel);if(el)el.hidden=HIDE.has(k)}
   if(HIDE.has(S.tool))setTool('select')}
 function renderFeats(){$('#sFeats').innerHTML=FEATS.map(([k,n])=>`<label><input type="checkbox" data-k="${k}" ${HIDE.has(k)?'':'checked'}>${n}</label>`).join('')}
-const VGAP=(()=>{const d={mode:'inner',gap:24};try{return Object.assign(d,JSON.parse(localStorage.getItem('scanqc:vgap')||'{}'))}catch(e){return d}})();
+const VGAP=(()=>{const d={mode:'inner',gap:100,v:2};try{const o=JSON.parse(localStorage.getItem('scanqc:vgap')||'{}');return o.v===2?Object.assign(d,o):d}catch(e){return d}})();
 class Viewer{
   constructor(el){this.el=el;this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
@@ -1934,11 +1934,11 @@ $('#pGap').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.data
   m.innerHTML='<div class="zm-h">원본·보정본 사이 간격</div>'+GAP_STEPS.map(n=>`<button data-g="${n}" class="${cur===n?'on':''}">${n?n+'px':'붙이기 (0)'}</button>`).join('')+`<button data-g="c" class="${cur==='c'?'on':''}">각 화면 가운데</button>`;
   m.style.display='block';m.style.left=Math.min(r.left+r.width/2-m.offsetWidth/2,innerWidth-m.offsetWidth-8)+'px';m.style.top=(r.top-m.offsetHeight-8)+'px';
   m.onclick=ev=>{const t=ev.target.closest('[data-g]');if(!t)return;m.style.display='none';if(t.dataset.g==='c')VGAP.mode='center';else{VGAP.mode='inner';VGAP.gap=+t.dataset.g}
-    try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}gapTxt();vO.fit();vH.fit();toast(VGAP.mode==='center'?'각 화면 가운데로 보여요':'두 이미지 사이 간격 '+VGAP.gap+'px','ok',1400)}};
+    try{localStorage.setItem('scanqc:vgap',JSON.stringify({...VGAP,v:2}))}catch(e){}gapTxt();vO.fit();vH.fit();toast(VGAP.mode==='center'?'각 화면 가운데로 보여요':'두 이미지 사이 간격 '+VGAP.gap+'px','ok',1400)}};
 /* [ ] 처럼 Alt+← → 로 간격 한 단계씩 */
 addEventListener('keydown',e=>{if(!e.altKey||!['ArrowLeft','ArrowRight'].includes(e.key)||e.target.closest('input,textarea,select'))return;e.preventDefault();e.stopImmediatePropagation();
   const i=GAP_STEPS.findIndex(n=>n>=VGAP.gap),j=Math.max(0,Math.min(GAP_STEPS.length-1,(i<0?GAP_STEPS.length-1:i)+(e.key==='ArrowRight'?1:-1)));VGAP.mode='inner';VGAP.gap=GAP_STEPS[j];
-  try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}gapTxt();vO.render();vH.render();toast('두 이미지 사이 간격 '+VGAP.gap+'px','ok',1000)},true);
+  try{localStorage.setItem('scanqc:vgap',JSON.stringify({...VGAP,v:2}))}catch(e){}gapTxt();vO.render();vH.render();toast('두 이미지 사이 간격 '+VGAP.gap+'px','ok',1000)},true);
 $('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.dataset.for==='sec'){m.style.display='none';return}
   const c=+S.cfg.auto_sec||3,r=$('#pSec').getBoundingClientRect();m.dataset.for='sec';
   m.innerHTML='<div class="zm-h">자동 넘김 간격</div>'+AUTO_SECS.map(n=>`<button data-s="${n}" class="${n===c?'on':''}">${n}초</button>`).join('');
@@ -1949,7 +1949,7 @@ $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.va
 $('#pHelp').onclick=()=>$('#mHelp').classList.add('show');
 $('#btnSettings').onclick=()=>{renderFeats();$('#sVAlign').value=VGAP.mode;$('#sVGap').value=VGAP.gap;$('#sAutoNext').value=['auto','learn'].includes(S.cfg.on_load)?S.cfg.on_load:'hp';$('#sLabel').value=S.cfg.label_rot?'1':'0';syncLearn();$('#sPreview').value=S.cfg.preview;$('#sSkew').value=S.cfg.skew_warn;$('#sPrefetch').value=S.cfg.prefetch;$('#sBackup').value=S.cfg.backup!==false?1:0;$('#mSet').classList.add('show')};
 $('#sSave').onclick=async()=>{HIDE.clear();$$('#sFeats input').forEach(i=>{if(!i.checked)HIDE.add(i.dataset.k)});try{localStorage.setItem('scanqc:hide',JSON.stringify([...HIDE]))}catch(e){}applyHide();
-    VGAP.mode=$('#sVAlign').value;VGAP.gap=clamp(+$('#sVGap').value||0,0,400);try{localStorage.setItem('scanqc:vgap',JSON.stringify(VGAP))}catch(e){}vO.render();vH.render();
+    VGAP.mode=$('#sVAlign').value;VGAP.gap=clamp(+$('#sVGap').value||0,0,400);try{localStorage.setItem('scanqc:vgap',JSON.stringify({...VGAP,v:2}))}catch(e){}vO.render();vH.render();
     const b={on_load:$('#sAutoNext').value,label_rot:$('#sLabel').value==='1',preview:+$('#sPreview').value,skew_warn:+$('#sSkew').value,prefetch:+$('#sPrefetch').value,backup:$('#sBackup').value==='1'};
   try{const r=await api.post('/api/settings',b);S.cfg=r.cfg;$('#mSet').classList.remove('show');toast('설정을 저장했어요');if(S.idx>=0){if(!dirty())delete S.memo[S.cur.name];go(S.idx)}}catch(e){toast(e.message,'err')}};
 $('#sLearnRun').onclick=()=>{if(!S.files||!S.files.length){toast('먼저 폴더를 불러오세요','warn');return}runLearn()};
