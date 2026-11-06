@@ -86,9 +86,9 @@ input,select{font:inherit;color:var(--text)}
 .stats-big span{color:var(--sub);font-size:14px;font-weight:600}
 .bar{height:4px;border-radius:4px;background:#4d4d4d;overflow:hidden;margin:8px 0}
 .bar>i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
-.stats-row{display:flex;flex-wrap:nowrap;gap:10px;color:var(--sub);font-size:11.5px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}.stats-row::-webkit-scrollbar{display:none}
+.stats-row{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--sub);font-size:11.5px;white-space:nowrap;margin-bottom:2px}
 .stats-row b{color:var(--text);font-weight:700}
-.chips{display:flex;flex-wrap:nowrap;gap:5px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:thin}.chips::-webkit-scrollbar{height:4px}.chips::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:2px}.chips .chip{flex:none;height:26px;padding:0 9px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 16px 10px;position:relative}.chips .chip{flex:none;height:26px;padding:0 9px}
 .chips::-webkit-scrollbar{display:none}
 .chip{height:28px;padding:0 10px;border-radius:var(--pill);background:var(--elev2);font-size:12px;font-weight:500;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:.15s}
 .chip:hover{background:#333}
@@ -722,12 +722,13 @@ a.btn{text-decoration:none}
   <h3>PC 설치형 ScanQC <button class="icon-btn" data-close data-i="x"></button></h3>
   <p class="hint" style="font-size:13px;margin:0 0 12px">Windows 10·11용 · 인터넷 없이 동작 · 폴더 전체 경로 표시 · 파이썬 포함(따로 설치할 것 없음)</p>
   <ol class="steps">
-    <li>아래 버튼으로 <b>ScanQC_PC.zip</b> 내려받기 (약 32MB)</li>
-    <li>압축 파일을 <b>먼저 풀기</b> (압축 안에서 바로 실행하면 안 돼요)</li>
-    <li>풀린 폴더의 <b>ScanQC.vbs</b> 더블클릭 → 바탕화면에 ScanQC 아이콘이 생겨요</li>
+    <li>아래 <b>설치 파일 받기</b>로 <b>ScanQC_Setup.exe</b> 내려받기 (약 20MB)</li>
+    <li>더블클릭해서 설치 → 바탕화면·시작 메뉴에 ScanQC 아이콘이 생겨요 (관리자 권한 필요 없음)</li>
     <li>처음 한 번 'Windows의 PC 보호' 창이 뜨면 <b>추가 정보 → 실행</b></li>
+    <li>지울 때는 시작 메뉴 <b>ScanQC 제거</b> 또는 Windows 설정 → 앱</li>
   </ol>
-  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" data-close>닫기</button><a class="btn btn-green" id="pcGo" href="https://github.com/handgoldking1234/iux-qc/raw/main/download/ScanQC_PC.zip" download><span data-i="download" data-s="15"></span>내려받기</a></div>
+  <p class="hint" style="margin:0 0 12px">설치 없이 쓰려면 <a href="https://github.com/handgoldking1234/iux-qc/raw/main/download/ScanQC_PC.zip" download style="color:var(--accentText)">압축 파일(zip)</a>을 받아 풀고 ScanQC.vbs 를 실행하세요.</p>
+  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" data-close>닫기</button><a class="btn btn-green" id="pcGo" href="https://github.com/handgoldking1234/iux-qc/raw/main/download/ScanQC_Setup.exe" download><span data-i="download" data-s="15"></span>설치 파일 받기</a></div>
 </div></div>
 
 <div class="modal-bg lmodal" id="mLogin"><div class="modal">

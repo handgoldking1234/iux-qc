@@ -48,7 +48,7 @@
 
 ## PC 설치형 (인터넷 없이)
 
-검수 화면 왼쪽 **PC 설치형 받기** 버튼으로 Windows용 프로그램을 내려받을 수 있어요 (`download/ScanQC_PC.zip`).
+검수 화면 왼쪽 **PC 설치형 받기** 버튼으로 Windows용 설치 파일을 내려받을 수 있어요 (`download/ScanQC_Setup.exe` · 설치 없이 쓰는 압축본은 `download/ScanQC_PC.zip`).
 압축을 풀고 `ScanQC.vbs` 를 더블클릭하면 바탕화면에 아이콘이 생깁니다. 폴더 전체 경로가 그대로 보이고 인터넷이 없어도 동작해요.
 
 ## 서버 없이 바로 열기 · 고치면서 보기
