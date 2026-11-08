@@ -158,6 +158,7 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .zoombar .zpct{min-width:56px;color:#fff}
 .zoombar i{width:1px;height:16px;background:#3a3a3a;margin:0 3px}
 .app:not(.loaded) .zoombar{display:none}
+@media(max-width:860px){.app:not(.loaded) #segTool{display:none}}
 /* 배율 바는 패널 머리줄 오른쪽 · 도구 막대는 보정본 오른쪽 바깥 → 이미지를 가리지 않음 */
 .pane-head .zoombar{position:static;box-shadow:none;background:var(--elev2);border:0;padding:2px;flex:none}
 .pane-head .zoombar button{height:22px}
@@ -585,7 +586,7 @@ a.btn{text-decoration:none}
           <div class="grid2 mt8"><button class="btn btn-dark btn-sm" id="pUndo">마지막 획 취소</button><button class="btn btn-dark btn-sm" id="pClear">획 모두 삭제</button></div></div>
       </div>
 
-      <details class="sec" id="secColor" open>
+      <details class="sec" id="secColor">
         <summary><div class="sec-h"><span data-i="sun" data-s="16"></span><span>색 보정 <em class="tag blue" id="selColorTag" style="font-style:normal;margin-left:6px" hidden>선택 영역</em></span><span class="chev" data-i="chevron-right" data-s="16"></span></div></summary>
         <div class="mt8"><button class="btn btn-dark btn-sm" id="btnLevels">자동 레벨</button></div>
         <div class="sl"><span>밝기</span><input type="range" id="c_bright" min="-50" max="50" step="1"><input type="number" id="n_bright" step="1"></div>
