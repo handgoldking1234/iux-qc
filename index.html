@@ -177,6 +177,10 @@ details.sec[open] .chev{transform:rotate(90deg)}
 @container (max-width:470px){#hO,#hH{display:none}#btnOEdit{font-size:0;gap:0;padding:0 7px}}
 .trim-unit{display:flex;align-items:center;gap:8px;margin:-2px 0 8px;font-size:11px;color:var(--mute)}.trim-unit span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .feat-row{display:block}.feats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.feats label{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:14px;background:var(--elev2);font-size:12px;cursor:pointer;user-select:none}.feats input{accent-color:var(--accent)}
+.focus-btn{width:32px;height:32px;flex:none;border-radius:50%;background:var(--elev2)}.focus-btn:hover{background:#333;color:#fff}
+/* 전체 보기(Tab) 중에는 머리줄이 숨으므로 같은 버튼을 오른쪽 위에 띄워 둠 */
+.app.focus #paneH .pane-head{padding-right:50px}
+.app.focus #pFocus{position:fixed;top:12px;right:14px;z-index:60;color:var(--accentText);box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .help-btn{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;margin-right:6px;border-radius:14px;background:var(--elev2);color:var(--sub);font-size:12px;font-weight:700;transition:.15s}
 .help-btn:hover{background:#333;color:#fff}
 .ins-closed .help-btn,.ins-closed .ins-head>span{display:none}
@@ -398,7 +402,8 @@ a.btn{text-decoration:none}
 .app.focus{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 64px!important;padding:6px 6px 0!important;gap:4px!important}
 /* Tab 화면만 보기: 재생 막대(이전·원본복사·확인·자동보정·다음·자동넘김·진행)는 남김 */
 .app.focus>.player{display:grid!important;grid-template-columns:minmax(160px,22%) 1fr minmax(160px,22%)}
-.app.focus>.lib,.app.focus>.ins,.app.focus .stage-head,.app.focus .scrim{display:none!important}
+.app.focus>.lib,.app.focus>.ins,.app.focus .scrim,.app.focus .stage-head>:not(#pFocus){display:none!important}
+.app.focus .stage-head{height:0!important;min-height:0!important;padding:0!important;overflow:visible}
 .app.focus .panes{padding:0 4px}
 /* Tab: '이상 없음' 줄은 숨김 (경고가 있을 때만 작게 표시) */
 .app.focus .qc:has(.qc-ok),.app.focus .qc:empty{display:none}
@@ -474,6 +479,7 @@ a.btn{text-decoration:none}
       <div class="seg" id="segBase" title="보정 기준 이미지">
         <button data-v="hp">HP 기준</button><button data-v="orig">원본 기준</button>
       </div>
+      <button class="icon-btn focus-btn" id="pFocus" title="전체 보기 · 패널 숨기기 (Tab)" data-i="maximize-2" data-s="16"></button>
       
       <button class="icon-btn mbtn" id="mIns" title="보정 패널" data-i="sliders"></button>
     </div>
@@ -640,7 +646,6 @@ a.btn{text-decoration:none}
       <div class="prog"><span id="pCur">0</span><input type="range" id="pBar" min="1" max="1" value="1"><span id="pTot">0</span></div>
     </div>
     <div class="vol">
-      <button class="cbtn" id="pFocus" data-tip="넓게 보기 (패널 숨기기) Tab" data-i="maximize-2"></button>
       <button class="cbtn" id="pFit" data-tip="화면 맞춤 0" data-i="scan"></button>
       <button class="cbtn csec" id="pGap" data-tip="원본·보정본 사이 간격">간격</button>
       <button class="cbtn" id="pSolo" data-tip="원본 패널 표시 Shift+Tab" data-i="columns-2"></button>
@@ -1676,7 +1681,7 @@ $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(f
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
-function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.style.color=on?'var(--accentText)':'';b.dataset.tip=on?'패널 다시 보기 Tab':'넓게 보기 (패널 숨기기) Tab'}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
+function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.title=on?'전체 보기 끝내기 · 패널 다시 보기 (Tab)':'전체 보기 · 패널 숨기기 (Tab)'}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){if(on&&S.origEdit)return;S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
 /* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
 const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
