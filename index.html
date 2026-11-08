@@ -1302,7 +1302,7 @@ function cropSetEdges(o){const P=S.pending;if(!P)return;const m=baseMeta(),[rw,r
   let l=P.x*rw,t=P.y*rh,r=(1-P.x-P.w)*rw,b=(1-P.y-P.h)*rh;if('l'in o)l=o.l;if('t'in o)t=o.t;if('r'in o)r=o.r;if('b'in o)b=o.b;
   l=clamp(l,0,rw-r-8);r=clamp(r,0,rw-l-8);t=clamp(t,0,rh-b-8);b=clamp(b,0,rh-t-8);
   S.pending={...P,x:l/rw,y:t/rh,w:(rw-l-r)/rw,h:(rh-t-b)/rh};updateCropBar();S.ev.render()}
-for(const [id,k] of [['cL','l'],['cT','t'],['cR','r'],['cB','b']]){const i=$('#'+id);i.addEventListener('change',()=>cropSetEdges({[k]:+i.value||0}));i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){cropSetEdges({[k]:+i.value||0});i.blur()}})}
+for(const [id,k] of [['cL','l'],['cT','t'],['cR','r'],['cB','b']]){const i=$('#'+id);i.addEventListener('change',()=>cropSetEdges({[k]:+i.value||0}));i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();cropSetEdges({[k]:+i.value||0});i.blur();confirmCrop()}else if(e.key==='Escape'){i.blur();cancelCrop()}})}
 function cropNudge(dir,step){const P=S.pending;if(!P)return false;const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt),h=S.cropEdge||'';
   const cur={l:P.x*rw,t:P.y*rh,r:(1-P.x-P.w)*rw,b:(1-P.y-P.h)*rh},dx=dir==='ArrowLeft'?-step:dir==='ArrowRight'?step:0,dy=dir==='ArrowUp'?-step:dir==='ArrowDown'?step:0,o={};
   if(!h||h==='move'){if(!dx&&!dy)return false;o.l=cur.l+dx;o.r=cur.r-dx;o.t=cur.t+dy;o.b=cur.b-dy;if(o.l<0||o.r<0){o.l=cur.l;o.r=cur.r}if(o.t<0||o.b<0){o.t=cur.t;o.b=cur.b}}
@@ -2014,7 +2014,7 @@ document.addEventListener('keydown',e=>{
     case'KeyC':setTool(S.tool==='crop'?'select':'crop');break;
     case'KeyE':S.lastPaint='erase';setTool(S.tool==='erase'?'select':'erase');break;
     case'KeyH':setTool('select');break;
-    case'KeyR':case'Enter':if(S.poly&&e.code==='Enter')closePoly(S.poly.pts);else if(S.tool==='crop')confirmCrop();else hit=e.code==='KeyR'&&false;break;
+    case'KeyR':case'Enter':case'NumpadEnter':if(S.poly&&e.code!=='KeyR')closePoly(S.poly.pts);else if(S.tool==='crop')confirmCrop();else hit=e.code==='KeyR'&&false;break;
     case'KeyZ':setTool(S.tool==='zoom'?'select':'zoom');break;
     case'KeyM':setMag(!S.mag);break;
     case'BracketLeft':if(PAINT.has(S.tool))setBrushSize(S.brush.size[S.tool]/1.2);else setMagZ(S.magZ-.5);break;
