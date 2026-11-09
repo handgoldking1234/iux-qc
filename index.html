@@ -239,7 +239,7 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .view canvas{position:absolute;inset:0;touch-action:none}
 .view.t-crop canvas{cursor:crosshair}
 .view.t-select canvas{cursor:grab}
-.view.panning canvas{cursor:grabbing}
+.view.panning canvas{cursor:grabbing}body.space-pan .view canvas{cursor:grab!important}body.space-pan .view.panning canvas{cursor:grabbing!important}
 .spin{position:absolute;inset:0;display:none;place-items:center;background:rgba(13,13,13,.55);z-index:2}
 .pane.loading .spin{display:grid}
 .spinner{width:36px;height:36px;border-radius:50%;border:3px solid #333;border-top-color:var(--accent);animation:rot .8s linear infinite}
@@ -562,7 +562,7 @@ a.btn{text-decoration:none}
         <div class="opt" data-for="rotate"><div class="opt-title"><span data-i="rotate-cw" data-s="14"></span><b>자유 회전</b></div>
           <div class="hint" style="margin:0">이미지를 잡고 돌리세요 · 0.1° 단위, Shift는 1° 단위<br>, . 키로 ±0.5°</div></div>
         <div class="opt" data-for="crop"><div class="opt-title"><span data-i="crop" data-s="14"></span><b>크롭</b><span style="flex:1"></span><span id="cropTxt">없음</span></div>
-          <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · 손바닥(H)으로 화면 이동 · R 확정</div>
+          <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · Space 누른 채 끌면 화면 이동 · R 확정</div>
           <button class="btn btn-dark btn-sm btn-block" id="cClear" data-i="x" data-s="13">크롭 해제</button></div>
         <div class="opt" data-for="sel"><div class="opt-title"><span data-i="square-dashed" data-s="14"></span><b>선택</b><span style="flex:1"></span><span id="selTxt">없음</span></div>
           <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하거나 방향키(Shift ×10)로 이동 · 화면 이동은 오른쪽 버튼·휠 버튼 드래그<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
@@ -680,6 +680,7 @@ a.btn{text-decoration:none}
   <div class="keys">
     <h4>검수 진행</h4>
     <div><span>자동 보정 확인(저장) + 다음</span><span><kbd>Space</kbd></span></div>
+    <div><span>화면 이동 (어느 도구에서나)</span><span><kbd>Space</kbd> 누른 채 끌기</span></div>
     <div><span>원본 그대로 복사 (현재 위치 유지)</span><span><kbd>Q</kbd></span></div>
     <div><span>이전 파일 (수정했으면 자동 저장)</span><span><kbd>←</kbd></span></div>
     <div><span>다음 파일 (자동 저장)</span><span><kbd>→</kbd></span></div>
@@ -1171,7 +1172,8 @@ function bindViewer(v,isH){
     cv.setPointerCapture(e.pointerId);hideMag();
     const[sx0,sy0]=v.toSrc(x,y),outside=sx0<0||sy0<0||sx0>v.src.width||sy0>v.src.height;
     if(S.tool==='zoom'&&e.button===0){drag={type:'zoom',v,x0:x,ax:x,ay:y,p0:v.pct,moved:false,alt:e.altKey};S.dragging=true;return}
-    if(e.button===1||e.button===2||tool==='select'||(tool==='crop'&&S.cropPan)||(e.altKey&&tool!=='stamp')){drag={type:'pan',v,x0:x,y0:y,px:v.px,py:v.py};el.classList.add('panning')}
+    const hc=tool==='crop'&&S.cropPan?hitCrop(x,y):null;
+    if(S.spHeld||e.button===1||e.button===2||tool==='select'||(tool==='crop'&&S.cropPan&&(!hc||hc==='move'))||(e.altKey&&tool!=='stamp')){if(S.spHeld)S.spUsed=true;drag={type:'pan',v,x0:x,y0:y,px:v.px,py:v.py};el.classList.add('panning')}
     else if(tool==='rotate'||(tool==='crop'&&S.pending&&!hitCrop(x,y))){const g=tool==='crop'?cropGeo(S.pending,v.src):null,[cx,cy]=g?v.toScr(g.cx,g.cy):v.toScr(v.src.width/2,v.src.height/2);
       drag={type:'rotate',cx,cy,mx:x,my:y,a0:Math.atan2(y-cy,x-cx),snap:clone(S.edits),pend:S.pending&&clone(S.pending)}}
     else if(tool==='bucket'){const[px,py]=srcToStage(sx0,sy0),st=stageC.cv;if(!st||px<0||py<0||px>=st.width||py>=st.height)return;const b=S.bucket;
@@ -1194,7 +1196,7 @@ function bindViewer(v,isH){
     S.dragging=true});
   cv.addEventListener('pointermove',e=>{const[x,y]=pos(e);
     if(!drag){
-      if(v===S.ev&&S.tool==='crop'){if(S.cropPan)cv.style.cursor='';else{const h=hitCrop(x,y);cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}}
+      if(v===S.ev&&S.tool==='crop'){const h=hitCrop(x,y);if(S.cropPan)cv.style.cursor=h&&h!=='move'?CURSOR[h]:'';else cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}
       else if(v===S.ev&&S.tool==='rotate'&&v.src)cv.style.cursor=rotCursor(v,x,y);else cv.style.cursor='';
       if(v===S.ev&&S.poly&&v.src){const[sx,sy]=v.toSrc(x,y);S.poly.hv=srcToStage(sx,sy);v.render()}
       if(v===S.ev&&PAINT.has(S.tool)&&v.src){const[sx,sy]=v.toSrc(x,y);S.hover={v,x,y,st:srcToStage(sx,sy)};v.render()}
@@ -2030,7 +2032,7 @@ document.addEventListener('keydown',e=>{
   if(ctrl)return;if(e.altKey){if(e.code==='AltLeft'||e.code==='AltRight'){e.preventDefault();$$('.view.t-zoom').forEach(x=>x.classList.add('alt'))}return}
   const sh=e.shiftKey;let hit=true;
   switch(e.code){
-    case'Space':if(!e.repeat)saveNext();break;
+    case'Space':if(!e.repeat&&!S.spHeld){S.spHeld=true;S.spUsed=false;document.body.classList.add('space-pan')}break;  /* 누르고 끌면 화면 이동, 그냥 떼면 저장·다음 */
     case'ArrowRight':case'ArrowLeft':case'ArrowUp':case'ArrowDown':if(S.tool==='crop'&&S.pending){cropNudge(e.code,e.shiftKey?10:1);break}if(S.sel&&['rsel','esel','lasso'].includes(S.tool)&&stageC.cv){selNudge(e.code,e.shiftKey?10:1);break}if(e.code==='ArrowRight')saveNext();else if(e.code==='ArrowLeft')prev();else hit=false;break;
     case'KeyT':setTool('rotate');break;
     case'KeyL':setTool('rsel');break;
@@ -2066,7 +2068,9 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){}},{passive:true});
 
 /* ======================= boot ======================= */
-document.addEventListener('keyup',e=>{if(e.code==='AltLeft'||e.code==='AltRight')$$('.view.t-zoom').forEach(x=>x.classList.remove('alt'))});
+document.addEventListener('keyup',e=>{if(e.code==='AltLeft'||e.code==='AltRight')$$('.view.t-zoom').forEach(x=>x.classList.remove('alt'));
+  if(e.code==='Space'&&S.spHeld){S.spHeld=false;document.body.classList.remove('space-pan');e.preventDefault();if(!S.spUsed&&!drag)saveNext()}});
+addEventListener('blur',()=>{if(S.spHeld){S.spHeld=false;S.spUsed=true;document.body.classList.remove('space-pan')}});
 /* 창을 닫을 때: 저장 못 한 수정은 '임시 저장' → 다음에 열면 이어서 저장 · 통계 전송 */
 addEventListener('pagehide',()=>{try{clearTimeout(S.draftT);const d=draftPayload();if(d&&d.edits)Engine.draftBeacon(d.name,d.edits,d.status,d.ver);
   Engine.Usage.track('close');Engine.Usage.flush(true)}catch(e){}});
