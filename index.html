@@ -723,7 +723,7 @@ a.btn{text-decoration:none}
   <div class="set-row feat-row"><div>기능 보이기·숨기기<small>쓰지 않는 기능은 꺼 두면 화면에서 사라지고 단축키도 막혀요</small><div class="feats" id="sFeats"></div></div></div>
   <div class="set-row"><div>원본·보정본 이미지 위치<small>가운데로 붙이기: 두 이미지를 가운데로 모아 나란히 · 각 화면 가운데: 화면마다 가운데</small></div><select class="inp" id="sVAlign"><option value="inner">가운데로 붙이기</option><option value="center">각 화면 가운데</option></select></div>
   <div class="set-row"><div>두 이미지 사이 간격<small>가운데로 붙일 때 두 이미지 사이 거리(px) · 한 번 정하면 계속 유지</small></div><input class="inp" id="sVGap" type="number" min="0" max="400" step="4" style="width:90px"></div>
-  <div class="set-row"><div>미리보기 해상도<small>클수록 돋보기가 선명, 작을수록 빠름</small></div><select class="inp" id="sPreview"><option value="1000">1000 px · 가장 빠름</option><option value="1200">1200 px · 아주 빠름</option><option value="1600">1600 px · 빠름</option><option value="2400">2400 px · 기본</option><option value="3200">3200 px · 선명</option></select></div>
+  <div class="set-row"><div>미리보기 해상도<small>클수록 돋보기가 선명, 작을수록 빠름</small></div><select class="inp" id="sPreview"><option value="1000">1000 px · 가장 빠름</option><option value="1200">1200 px · 빠름 (기본)</option><option value="1600">1600 px · 보통</option><option value="2400">2400 px · 선명</option><option value="3200">3200 px · 아주 선명</option></select></div>
   <div class="set-row"><div>기울기 경고 기준<small>이 각도 이상이면 경고 칩 표시</small></div><input class="inp" type="number" id="sSkew" step="0.05" min="0.05"></div>
   <div class="set-row"><div>다음 파일 미리 읽기<small>보는 동안 다음 파일을 뒤에서 준비 · 많을수록 넘김이 빠르지만 브라우저 메모리를 더 써요 (웹은 최대 10장, 더 많이는 설치형)</small></div><select class="inp" id="sPrefetch"><option value="0">끄기</option><option value="1">1장</option><option value="2">2장</option><option value="3">3장</option><option value="5">5장</option><option value="10">10장</option></select></div>
   <div class="set-row"><div>덮어쓰기 전 백업<small>처음 덮어쓸 때 원래 보정본을 보관 (내 PC 폴더: 이 브라우저 안 · 팀 작업: 클라우드) · 백업 복원 가능</small></div><select class="inp" id="sBackup"><option value="1">켜기</option><option value="0">끄기</option></select></div>
@@ -1077,7 +1077,7 @@ for(const[v,id]of[[vO,'#zbO'],[vH,'#zbH']]){const bar=$(id);
       m.onclick=ev=>{const t=ev.target.closest('[data-p]');if(!t)return;t.dataset.p==='fit'?v.fit():v.setPct(+t.dataset.p);m.style.display='none'}}}}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#zmenu,.zpct,#pSec,#pGap'))$('#zmenu').style.display='none'});
 /* 미리보기 해상도보다 크게 확대하면 원본 해상도 이미지를 불러와 교체 (100% 이상도 선명하게) */
-function maybeHQ(v){if(!S.cur||S.cur.hq||!v.src)return;if(v.scale*(devicePixelRatio||1)>1.05)loadHQ()}
+function maybeHQ(v){if(!S.cur||S.cur.hq||!v.src)return;if(v.scale*Math.min(devicePixelRatio||1,1.25)>1.15)loadHQ()}  /* 고해상도 화면에서 화면 맞춤만으로는 원래 크기를 불러오지 않음 (넘김이 느려지지 않게) */
 async function loadHQ(){const cur=S.cur;if(!cur||cur.hq)return;cur.hq='loading';const f=cur.name,inf=cur.info;
   toast('원본 해상도 불러오는 중…','ok',1600);
   try{const [o,h]=await Promise.all([inf.orig?Engine.image(f,'orig',true):null,inf.hp?Engine.image(f,'hp',true):null]);
