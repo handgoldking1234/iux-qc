@@ -518,6 +518,8 @@
       return this.an.get(key);
     },
     async info(name, pre) {
+      if (!pre) { this.fg = (this.fg || 0) + 1; try { return await this.info(name, 'fg'); } finally { this.fg--; } }
+      if (pre === 'fg') pre = false;
       if (this.jobs.has(name)) await this.jobs.get(name).catch(() => { });
       const f = this.src.file(name); if (!f) throw new Error('목록에 없는 파일: ' + name);
       const out = { name, hp: null, orig: null };
@@ -542,11 +544,14 @@
       if (d.full) { this.keepFull(d); return d.full; }
       if (d.fullData) { const c = mk(d.fullData.width, d.fullData.height); c.getContext('2d', { willReadFrequently: true }).putImageData(d.fullData, 0, 0); d.full = c; d.fullData = null; this.keepFull(d); return c; }
       if (!d.fullP) d.fullP = (async () => {
+        this.fg = (this.fg || 0) + 1;  // 확대·저장용은 미리 읽기보다 먼저
+        try {
         const r = await (src || this.src).read(name, side), dd = await Codec.decode(r.buf, name);
         const full = mk(dd.meta.w, dd.meta.h), x = full.getContext('2d', { willReadFrequently: true });
         if (dd.rgba) x.putImageData(new ImageData(dd.rgba, dd.meta.w, dd.meta.h), 0, 0);
         else { x.fillStyle = '#fff'; x.fillRect(0, 0, full.width, full.height); x.drawImage(dd.bitmap, 0, 0); dd.bitmap.close && dd.bitmap.close(); }
         d.full = full; this.keepFull(d); return full;
+        } finally { this.fg--; }
       })().finally(() => { d.fullP = null; });
       return d.fullP;
     },
@@ -608,9 +613,14 @@
       const m2 = Object.assign({}, d.meta, { w: Math.round(out.width / k), h: Math.round(out.height / k) }), g = grayOf(out);
       return { meta: m2, an: await analyzeAsync(g.g, g.w, g.h, m2, { auto_mode: this.cfg.auto_mode, margin_mm: this.cfg.margin_mm }) };
     },
+    /* 넘기면 이전 미리 읽기는 멈추고 새로 · 화면에 띄우는 파일이 먼저 */
     async prefetch(names) {
-      const src = this.src;
-      for (const n of names || []) { if (this.src !== src) return; try { await this.info(n, true); } catch (e) { } await sleep(30); }
+      const src = this.src, tok = this.pfTok = (this.pfTok || 0) + 1;
+      for (const n of (names || []).slice(0, 10)) {
+        for (let k = 0; k < 200 && this.fg > 0; k++) await sleep(50);
+        if (this.src !== src || this.pfTok !== tok) return;
+        try { await this.info(n, true); } catch (e) { } await sleep(30);
+      }
     },
     draft(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, false, ver); },
     draftBeacon(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, true, ver); },
