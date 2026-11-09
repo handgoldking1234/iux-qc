@@ -565,7 +565,7 @@ a.btn{text-decoration:none}
           <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · 손바닥(H)으로 화면 이동 · R 확정</div>
           <button class="btn btn-dark btn-sm btn-block" id="cClear" data-i="x" data-s="13">크롭 해제</button></div>
         <div class="opt" data-for="sel"><div class="opt-title"><span data-i="square-dashed" data-s="14"></span><b>선택</b><span style="flex:1"></span><span id="selTxt">없음</span></div>
-          <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하면 이동<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
+          <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하거나 방향키(Shift ×10)로 이동 · 화면 이동은 오른쪽 버튼·휠 버튼 드래그<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
           <div class="grid3"><button class="btn btn-dark btn-sm" id="selClear" title="Ctrl+D">해제</button><button class="btn btn-dark btn-sm" id="selInv">반전</button><button class="btn btn-dark btn-sm" id="selFill" title="Delete">흰색 채우기</button></div>
           <div class="toggle" id="tSelFill" title="영역을 고르자마자 흰색으로 채우고 선택은 풀어요"><span>선택하면 바로 흰색 채우기</span><span class="sw" id="swSelFill"></span></div></div>
         <div class="opt" data-for="bucket"><div class="opt-title"><span data-i="paint-bucket" data-s="14"></span><b>페인트통</b></div>
@@ -1633,6 +1633,8 @@ function toggleBase(v){if(!S.cur)return;v=v||(baseSide()==='hp'?'orig':'hp');if(
 /* 다각형 선택: 꼭짓점(스테이지 비율) + 감싸는 상자 x,y,w,h (상자는 영역 계산·저장 서버와 공유) */
 function polySel(fp,inv){const xs=fp.map(q=>q[0]),ys=fp.map(q=>q[1]),x=Math.min(...xs),y=Math.min(...ys);
   return{shape:'poly',pts:fp.map(q=>[+q[0].toFixed(5),+q[1].toFixed(5)]),x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,inv:!!inv}}
+/* 선택 도구 + 선택 영역이 있을 때 방향키로 1px(Shift 10px)씩 옮기기 */
+function selNudge(code,n){const st=stageC.cv,dx=code==='ArrowLeft'?-n:code==='ArrowRight'?n:0,dy=code==='ArrowUp'?-n:code==='ArrowDown'?n:0;S.sel=moveSel(S.sel,dx/st.width,dy/st.height);S.ev.render();syncUI()}
 function moveSel(s,dx,dy){const n={...s,x:s.x+dx,y:s.y+dy};if(s.pts)n.pts=s.pts.map(q=>[q[0]+dx,q[1]+dy]);return n}
 function closePoly(pts){const st=stageC.cv;S.poly=null;if(!st||!pts||pts.length<3){S.ev.render();syncUI();return}
   const n=polySel(pts.map(q=>[q[0]/st.width,q[1]/st.height]));S.sel=(n.w*st.width>3&&n.h*st.height>3)?n:null;S.ev.render();syncUI();autoFillSel()}
@@ -2020,7 +2022,7 @@ document.addEventListener('keydown',e=>{
   const sh=e.shiftKey;let hit=true;
   switch(e.code){
     case'Space':if(!e.repeat)saveNext();break;
-    case'ArrowRight':case'ArrowLeft':case'ArrowUp':case'ArrowDown':if(S.tool==='crop'&&S.pending){cropNudge(e.code,e.shiftKey?10:1);break}if(e.code==='ArrowRight')saveNext();else if(e.code==='ArrowLeft')prev();else hit=false;break;
+    case'ArrowRight':case'ArrowLeft':case'ArrowUp':case'ArrowDown':if(S.tool==='crop'&&S.pending){cropNudge(e.code,e.shiftKey?10:1);break}if(S.sel&&['rsel','esel','lasso'].includes(S.tool)&&stageC.cv){selNudge(e.code,e.shiftKey?10:1);break}if(e.code==='ArrowRight')saveNext();else if(e.code==='ArrowLeft')prev();else hit=false;break;
     case'KeyT':setTool('rotate');break;
     case'KeyL':setTool('rsel');break;
     case'KeyU':setTool('esel');break;
