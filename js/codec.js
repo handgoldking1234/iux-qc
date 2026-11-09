@@ -4,6 +4,40 @@
 (function (root) {
   'use strict';
   const UT = root.UTIF || (typeof require === 'function' ? require('utif') : null);
+  /* TIFF 압축 풀기를 뒤쪽 작업 스레드 2개에서 (화면이 멈추지 않고, 원본·보정본을 동시에) · 안 되면 화면 스레드에서 */
+  const VENDOR = (() => { try { const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src; return s ? new URL('../vendor/', s).href : ''; } catch (e) { return ''; } })();
+  let TW = null, twid = 0; const twcb = new Map();
+  function tiffWorkers() {
+    if (TW !== null) return TW;
+    TW = false;
+    try {
+      if (!VENDOR || typeof Worker !== 'function' || /^file:/.test(VENDOR)) return TW;
+      const src = `importScripts(${JSON.stringify(VENDOR + 'pako.min.js')},${JSON.stringify(VENDOR + 'UTIF.js')});
+function edges(d,W,H){const D=Math.max(1,Math.min(260,Math.floor(Math.min(W,H)/4)));
+const strip=(x0,y0,w,h,hz,rev)=>{const n=hz?h:w,len=hz?w:h,a=new Uint8Array(n*len);for(let k=0;k<n;k++){const q=rev?n-1-k:k;for(let t=0;t<len;t++){const i=(hz?(y0+q)*W+x0+t:(y0+t)*W+x0+q)*4;a[k*len+t]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000+.5}}return{D:n,len,a}};
+return{t:strip(0,0,W,D,true,false),b:strip(0,H-D,W,D,true,true),l:strip(0,0,D,H,false,false),r:strip(W-D,0,D,H,false,true)}}
+function boxDown(d,W,H,f){const w=Math.floor(W/f),h=Math.floor(H/f),o=new Uint8ClampedArray(w*h*4),inv=1/(f*f),R=new Float32Array(w),G=new Float32Array(w),B=new Float32Array(w);
+for(let y=0;y<h;y++){R.fill(0);G.fill(0);B.fill(0);for(let yy=0;yy<f;yy++){let i=(y*f+yy)*W*4;for(let x=0;x<w;x++){let r=0,g=0,b=0;for(let xx=0;xx<f;xx++,i+=4){r+=d[i];g+=d[i+1];b+=d[i+2]}R[x]+=r;G[x]+=g;B[x]+=b}}
+let j=y*w*4;for(let x=0;x<w;x++,j+=4){o[j]=R[x]*inv;o[j+1]=G[x]*inv;o[j+2]=B[x]*inv;o[j+3]=255}}return{w,h,data:o}}
+onmessage=e=>{const {id,buf,opt}=e.data;try{const ifds=UTIF.decode(buf),ifd=ifds.find(d=>d.t256)||ifds[0];if(!ifd)throw new Error('TIFF 이미지를 읽을 수 없습니다');
+const tags={};for(const k in ifd)if(k[0]==='t')tags[k]=ifd[k];if(ifd.t259&&ifd.t259[0]===7){postMessage({id,jpeg:true,tags});return}
+UTIF.decodeImage(buf,ifd,ifds);const rgba=UTIF.toRGBA8(ifd),W=ifd.width,H=ifd.height;
+if(opt){const f=Math.max(1,Math.floor(Math.max(W,H)/opt.prevMax)),pv=f>=2?boxDown(rgba,W,H,f):null,ed=edges(rgba,W,H),tr=[];if(pv)tr.push(pv.data.buffer);
+const full=(opt.keep||!pv)?{buf:rgba.buffer,off:rgba.byteOffset,len:rgba.length}:null;if(full)tr.push(rgba.buffer);
+postMessage({id,tags,w:W,h:H,prev:pv?{w:pv.w,h:pv.h,data:pv.data}:null,edges:ed,full},tr);return}
+postMessage({id,tags,w:W,h:H,rgba:rgba.buffer,off:rgba.byteOffset,len:rgba.length},[rgba.buffer])}
+catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      const fail = () => { TW = false; for (const [k, c] of twcb) { twcb.delete(k); c(null); } };
+      TW = [0, 1].map(() => { const w = new Worker(url); w.n = 0; w.onmessage = e => { w.n--; const c = twcb.get(e.data.id); if (c) { twcb.delete(e.data.id); c(e.data); } }; w.onerror = fail; return w; });
+    } catch (e) { TW = false; }
+    return TW;
+  }
+  function tiffInWorker(buf, opt) {
+    const ws = tiffWorkers(); if (!ws) return Promise.resolve(null);
+    const w = ws[0].n <= ws[1].n ? ws[0] : ws[1], id = ++twid; w.n++;
+    return new Promise(res => { twcb.set(id, res); try { w.postMessage({ id, buf, opt: opt || null }); } catch (e) { twcb.delete(id); w.n--; res(null); } });
+  }
 
   const EXTS = ['.tif', '.tiff', '.jpg', '.jpeg', '.png', '.bmp'];
   const FMT = { '.tif': 'TIFF', '.tiff': 'TIFF', '.jpg': 'JPEG', '.jpeg': 'JPEG', '.png': 'PNG', '.bmp': 'BMP' };
@@ -82,10 +116,17 @@
 
   /* ---------------------------------------------------------------- 읽기 */
   /* 결과: {meta, rgba(Uint8ClampedArray, w*h*4) | bitmap(ImageBitmap)} */
-  async function decode(buf, name) {
+  /* opt {prevMax, keep}: 작업 스레드에서 미리보기(정수배 평균 축소)·가장자리 띠까지 만들어 옴 → prev·edges, keep 이면 원래 크기 rgba 도 */
+  async function decode(buf, name, opt) {
     const b = new Uint8Array(buf), ext = extOf(name);
     const isTiff = (b[0] === 0x49 && b[1] === 0x49) || (b[0] === 0x4D && b[1] === 0x4D);
     if (isTiff) {
+      const r = await tiffInWorker(buf, opt);
+      if (r && r.err) throw new Error(r.err);
+      if (r && opt && !r.jpeg) { const meta = tiffMeta(r.tags); meta.w = r.w; meta.h = r.h; meta.bytes = b.length;
+        return { meta, prev: r.prev, edges: r.edges, rgba: r.full ? new Uint8ClampedArray(r.full.buf, r.full.off, r.full.len) : null }; }
+      if (r && !r.jpeg) { const meta = tiffMeta(r.tags); meta.w = r.w; meta.h = r.h; meta.bytes = b.length; return { meta, rgba: new Uint8ClampedArray(r.rgba, r.off, r.len) }; }
+      if (r && r.jpeg && typeof createImageBitmap === 'function') { const meta = tiffMeta(r.tags); meta.bytes = b.length; return { meta, rgba: await jpegTiff(b, r.tags, meta) }; }
       const ifds = UT.decode(buf);
       const ifd = ifds.find(d => d.t256) || ifds[0];
       if (!ifd) throw new Error('TIFF 이미지를 읽을 수 없습니다');

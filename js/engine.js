@@ -473,27 +473,37 @@
     },
     async open(src) {
       if (this.src && this.src.close) this.src.close();
-      this.src = src; this.dec.clear(); this.an.clear(); this.jobs.clear();
+      this.src = src; this.dec.clear(); this.an.clear(); this.jobs.clear(); if (this.fullC) this.fullC.clear();
       if (src.kind === 'cloud' && src.p.cfg) for (const k of ['auto_mode', 'margin_mm', 'skew_warn', 'backup']) if (k in src.p.cfg) this.cfg[k] = src.p.cfg[k];
       const resume = await src.open();
       Usage.start(Object.assign({ file_count: src.files.length }, src.label));
       return { files: src.files.map(f => ({ name: f.name, hp: f.has('hp'), orig: f.has('orig'), status: f.status, qc: f.qc || null })), resume, title: src.title };
     },
-    forget(name) { for (const k of [...this.dec.keys()]) if (k.startsWith(name + '|')) this.dec.delete(k); for (const k of [...this.an.keys()]) if (k.startsWith(name + '|')) this.an.delete(k); },
+    forget(name) { for (const k of [...this.dec.keys()]) if (k.startsWith(name + '|')) this.dec.delete(k); if (this.fullC) for (const k of [...this.fullC.keys()]) if (k.startsWith(name + '|')) this.fullC.delete(k); for (const k of [...this.an.keys()]) if (k.startsWith(name + '|')) this.an.delete(k); },
     /* 한 파일 한 면(원본/보정본)을 읽어 전체 해상도 · 미리보기 · 분석용 회색조로 */
-    decoded(name, side, src) {
+    /* keep=false(미리 읽기): 미리보기·분석용만 남기고 원래 크기 이미지는 버림 — 큰 TIF 여러 장을 메모리에 들고 있지 않게 */
+    decoded(name, side, src, keep = true) {
       src = src || this.src; const cache = src === this.src ? this.dec : new Map();
       return (async () => {
         const ver = await src.ver(name, side), key = `${name}|${side}|${ver}`;
         let p = cache.get(key);
         if (!p) {
           p = (async () => {
-            const r = await src.read(name, side), d = await Codec.decode(r.buf, name);
-            const full = mk(d.meta.w, d.meta.h), x = full.getContext('2d', { willReadFrequently: true });
-            if (d.rgba) x.putImageData(new ImageData(d.rgba, d.meta.w, d.meta.h), 0, 0);
-            else { x.fillStyle = '#fff'; x.fillRect(0, 0, full.width, full.height); x.drawImage(d.bitmap, 0, 0); d.bitmap.close && d.bitmap.close(); }
-            const prev = fit(full, +this.cfg.preview || 2400), gr = grayOf(prev);
-            return { meta: d.meta, full, prev, gray: gr, ver, edges: edgeStats(full) };
+            const pmax = +this.cfg.preview || 2400, r = await src.read(name, side), d = await Codec.decode(r.buf, name, { prevMax: pmax, keep });
+            let full = null, fullData = null, prev, edges;
+            if (d.edges) {  // TIFF: 작업 스레드에서 미리보기·가장자리까지 끝냄 → 화면 스레드는 작은 그림만 다룸
+              if (d.prev) { const pc = mk(d.prev.w, d.prev.h); pc.getContext('2d').putImageData(new ImageData(d.prev.data, d.prev.w, d.prev.h), 0, 0); prev = fit(pc, pmax); }
+              else { const pc = mk(d.meta.w, d.meta.h); pc.getContext('2d', { willReadFrequently: true }).putImageData(new ImageData(d.rgba, d.meta.w, d.meta.h), 0, 0); prev = fit(pc, pmax); if (prev === pc) full = pc; }
+              edges = d.edges; if (d.rgba && !full) fullData = new ImageData(d.rgba, d.meta.w, d.meta.h);
+            } else {
+              full = mk(d.meta.w, d.meta.h); const x = full.getContext('2d', { willReadFrequently: true });
+              if (d.rgba) x.putImageData(new ImageData(d.rgba, d.meta.w, d.meta.h), 0, 0);
+              else { x.fillStyle = '#fff'; x.fillRect(0, 0, full.width, full.height); x.drawImage(d.bitmap, 0, 0); d.bitmap.close && d.bitmap.close(); }
+              prev = fit(full, pmax); edges = edgeStats(full);
+            }
+            const e = { key, meta: d.meta, full, fullData, prev, gray: grayOf(prev), ver, edges };
+            if (keep) this.keepFull(e); else { e.full = null; e.fullData = null; }
+            return e;
           })();
           cache.set(key, p);
           p.catch(() => cache.delete(key));
@@ -507,19 +517,39 @@
       if (!this.an.has(key)) { const p = analyzeAsync(d.gray.g, d.gray.w, d.gray.h, d.meta, { auto_mode: c.auto_mode, margin_mm: c.margin_mm }); this.an.set(key, p); p.catch(() => this.an.delete(key)); }
       return this.an.get(key);
     },
-    async info(name) {
+    async info(name, pre) {
       if (this.jobs.has(name)) await this.jobs.get(name).catch(() => { });
       const f = this.src.file(name); if (!f) throw new Error('목록에 없는 파일: ' + name);
       const out = { name, hp: null, orig: null };
+      const ds = {}; for (const side of ['hp', 'orig']) if (f.has(side)) { ds[side] = this.decoded(name, side, undefined, !pre); ds[side].catch(() => { }); }  // 원본·보정본 동시에
       for (const side of ['hp', 'orig']) if (f.has(side)) {
-        const d = await this.decoded(name, side), an = await this.analysis(name, side, d);
+        const d = await ds[side], an = await this.analysis(name, side, d);
         out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, trimMax(this.cfg, d.meta)), label: d.label === undefined ? (d.label = labelRot(d.gray)) : d.label };
       }
+      if (!pre) { const side = f.has('hp') ? 'hp' : 'orig'; ds[side].then(d => { if (!d.full && !d.fullData) setTimeout(() => { if (this.dec.has(d.key)) this.fullOf(name, side, d).catch(() => { }); }, 800); }, () => { }); }  // 미리 읽은 파일: 확대·저장용 원래 크기를 뒤에서 준비
       out.qc = Analyze.qc(out.hp, out.orig, this.cfg);
       out.status = f.status; out.backup = await this.src.hasBackup(name);
       return out;
     },
-    async image(name, side, full) { const d = await this.decoded(name, side); return full ? d.full : d.prev; },
+    async image(name, side, full) { const d = await this.decoded(name, side); return full ? this.fullOf(name, side, d) : d.prev; },
+    /* 원래 크기 이미지: 최근 몇 장만 메모리에 (합계 약 1억2천만 화소까지), 없으면 다시 읽기 */
+    keepFull(e) {
+      const C = this.fullC || (this.fullC = new Map()); C.delete(e.key); C.set(e.key, e);
+      const px = () => { let t = 0; for (const x of C.values()) { const f = x.full || x.fullData; if (f) t += f.width * f.height; } return t; };
+      while (C.size > 1 && (C.size > 2 || px() > 120e6)) { const k = C.keys().next().value, o = C.get(k); C.delete(k); o.full = null; o.fullData = null; }
+    },
+    async fullOf(name, side, d, src) {
+      if (d.full) { this.keepFull(d); return d.full; }
+      if (d.fullData) { const c = mk(d.fullData.width, d.fullData.height); c.getContext('2d', { willReadFrequently: true }).putImageData(d.fullData, 0, 0); d.full = c; d.fullData = null; this.keepFull(d); return c; }
+      if (!d.fullP) d.fullP = (async () => {
+        const r = await (src || this.src).read(name, side), dd = await Codec.decode(r.buf, name);
+        const full = mk(dd.meta.w, dd.meta.h), x = full.getContext('2d', { willReadFrequently: true });
+        if (dd.rgba) x.putImageData(new ImageData(dd.rgba, dd.meta.w, dd.meta.h), 0, 0);
+        else { x.fillStyle = '#fff'; x.fillRect(0, 0, full.width, full.height); x.drawImage(dd.bitmap, 0, 0); dd.bitmap.close && dd.bitmap.close(); }
+        d.full = full; this.keepFull(d); return full;
+      })().finally(() => { d.fullP = null; });
+      return d.fullP;
+    },
     async claim(name) { this.src.setLast(name); return this.src.claim(name); },
     /* 다른 파일로 넘어갈 때: 저장이 끝난 뒤 잠금 해제 */
     leave(name) { if (!name || !this.src) return; const j = this.jobs.get(name), src = this.src; (j ? j.catch(() => { }) : Promise.resolve()).then(() => { if (this.src === src && !this.jobs.has(name)) src.release(name); }); },
@@ -545,7 +575,7 @@
       return this.queue(name, async () => {
         const d = await this.decoded(name, baseSide, src);
         const ref = f.has('hp') ? (await this.decoded(name, 'hp', src)).meta : d.meta;
-        let cv = d.full, meta = d.meta;
+        let cv = await this.fullOf(name, baseSide, d, src), meta = d.meta;
         if (pre) { cv = this.render(cv, meta, pre); meta = Object.assign({}, meta, { w: cv.width, h: cv.height }); }
         cv = resizeCanvas(this.render(cv, meta, edits), edits.resize);
         const bytes = await this.encodeCanvas(cv, ref, f.target);
@@ -561,7 +591,7 @@
       return this.queue(name, async () => {
         let bytes;
         if (Codec.extOf(f.target) === Codec.extOf(f.origName)) bytes = new Uint8Array((await src.read(name, 'orig')).buf);
-        else { const d = await this.decoded(name, 'orig', src), ref = f.has('hp') ? (await this.decoded(name, 'hp', src)).meta : d.meta; bytes = await this.encodeCanvas(d.full, Object.assign({}, d.meta, { format: ref.format, compression: ref.compression }), f.target); }
+        else { const d = await this.decoded(name, 'orig', src), ref = f.has('hp') ? (await this.decoded(name, 'hp', src)).meta : d.meta; bytes = await this.encodeCanvas(await this.fullOf(name, 'orig', d, src), Object.assign({}, d.meta, { format: ref.format, compression: ref.compression }), f.target); }
         await src.writeHP(name, bytes, status, { action: 'copy_original' });
         if (src === this.src) this.forget(name); src.draft(name, null);
         Usage.track(status === 'auto' ? 'save' : 'copy', name, status);
@@ -580,7 +610,7 @@
     },
     async prefetch(names) {
       const src = this.src;
-      for (const n of names || []) { if (this.src !== src) return; try { await this.info(n); } catch (e) { } await sleep(30); }
+      for (const n of names || []) { if (this.src !== src) return; try { await this.info(n, true); } catch (e) { } await sleep(30); }
     },
     draft(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, false, ver); },
     draftBeacon(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, true, ver); },
