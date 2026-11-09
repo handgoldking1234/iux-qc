@@ -190,7 +190,7 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .keys kbd,.howto kbd{white-space:nowrap}.howto b{color:#fff}.howto kbd{font-size:11px}
 .zmenu{position:fixed;z-index:80;display:none;background:var(--elev2);border-radius:8px;padding:4px;box-shadow:0 12px 32px rgba(0,0,0,.6);min-width:96px}
 .zmenu button{display:block;width:100%;text-align:left;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
-.zmenu button:hover{background:#3e3e3e}.zmenu button.on{color:var(--accent)}input[type=number]{cursor:ns-resize}input[type=number]:focus{cursor:text}
+.zm-cols{display:flex;align-items:flex-start}.zm-cols>div+div{border-left:1px solid #3a3a3a;margin-left:4px;padding-left:4px;min-width:178px}.zmenu .zm-ck{display:flex;align-items:center;gap:8px}.zm-ck i{flex:none;width:15px;height:15px;border-radius:4px;border:1.5px solid #777;display:grid;place-items:center;color:transparent}.zmenu .zm-ck.on{color:#fff}.zm-ck.on i{background:var(--accent);border-color:var(--accent);color:#fff}.zm-ck em{font-style:normal;white-space:nowrap;font-size:10px;color:var(--red);margin-left:auto}.zm-note{font-size:11px;color:var(--mute);padding:4px 10px 6px;line-height:1.4;max-width:190px}.cbtn.csec.skipon::after{content:'';position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--accent)}.cbtn.csec{position:relative}.zmenu button:hover{background:#3e3e3e}.zmenu button.on{color:var(--accent)}input[type=number]{cursor:ns-resize}input[type=number]:focus{cursor:text}
 .zm-in{display:flex;align-items:center;gap:4px;padding:6px 6px 2px;border-top:1px solid #3a3a3a;margin-top:4px}.zm-in input{width:58px;height:26px;border-radius:6px;border:1px solid #444;background:#1c1c1c;color:#fff;padding:0 6px;font:inherit;font-size:12px}.zm-in span{font-size:11px;color:var(--mute)}.zmenu .zm-in button{width:auto;padding:0 8px;height:26px;background:var(--accent);color:#fff;border-radius:6px}.zmenu .zm-h{padding:4px 10px 6px;font-size:11px;color:var(--mute);font-weight:600;white-space:nowrap}
 .view.t-zoom canvas{cursor:zoom-in}.view.t-zoom.alt canvas{cursor:zoom-out}
 .sub-h{display:flex;align-items:center;font-size:12px;font-weight:700;color:#fff;margin:14px 0 6px}
@@ -1573,7 +1573,10 @@ async function go(i){
 
 /* 자동 넘김: 화면에 다 뜬 뒤 정한 초만큼 보여 주고 확인·저장 → 다음. 확인이 필요한 파일·마지막 파일에서 멈춤, 아무 키·클릭이면 멈춤 */
 const AUTO_SECS=[0.5,0.75,1,1.25,1.5,2,3,5,8,10,15];
-function secTxt(){$('#pSec').textContent=(+S.cfg.auto_sec||3)+'초';gapTxt()}
+function secTxt(){const b=$('#pSec');b.textContent=(+S.cfg.auto_sec||3)+'초';b.classList.toggle('skipon',!!(S.skipQc&&S.skipQc.size));gapTxt()}
+/* 자동 넘김 중 알고 있는 경고는 멈추지 않고 넘기기 · 이번 폴더 작업에서만 (새로 열면 초기화) */
+const SKIP_QC=[['dark','검은 테두리 남음'],['orient','가로·세로 방향 다름'],['nopaper','용지 경계 못 찾음'],['bigtilt','큰 기울기 보정됨'],['missing','보정본 파일 없음'],['touch','가장자리 닿음 · 잘림 의심',1],['small','크롭 과다 의심',1]];
+S.skipQc=new Set();
 function gapTxt(){const b=$('#pGap');if(b)b.textContent=VGAP.mode==='center'?'간격 ·':'간격 '+VGAP.gap}
 function setAutoPlay(on,msg){S.auto=!!on;clearTimeout(S.autoT);S.autoK=null;const b=$('#pPlay');b.classList.toggle('on',S.auto);b.innerHTML=ic(S.auto?'pause':'play',18);
   if(S.auto){if(!S.cur){S.auto=false;b.classList.remove('on');b.innerHTML=ic('play',18);return}S.autoLast=-1;autoLoop()}
@@ -1583,7 +1586,9 @@ function autoLoop(){if(!S.auto)return;S.autoT=setTimeout(autoLoop,150);
   if(busy||S.idx===S.autoLast){S.autoK=null;return}
   const k=S.idx+':'+S.cur.name;if(S.autoK!==k){S.autoK=k;S.autoAt=Date.now();return}
   if(Date.now()-S.autoAt<(+S.cfg.auto_sec||3)*1000)return;
-  if(qcList().some(q=>q.level!=='info')){setAutoPlay(false,'확인이 필요한 파일이라 멈췄어요 · '+S.cur.name);return}
+  const qs=qcList().filter(q=>q.level!=='info'),stop=qs.filter(q=>!S.skipQc.has(q.code));
+  if(stop.length){setAutoPlay(false,`확인이 필요한 파일이라 멈췄어요 · ${stop[0].msg||''} · ${S.cur.name}`);return}
+  if(qs.length)toast('경고를 알고 넘겼어요 · 목록의 경고에 남아요','warn',1300);
   const last=S.idx+1>=S.files.length;S.autoLast=S.idx;saveNext();if(last)setAutoPlay(false,'마지막 파일까지 자동 넘김을 마쳤어요')}
 addEventListener('pointerdown',e=>{if(S.auto&&!e.target.closest('#pPlay,#pSec,#zmenu'))setAutoPlay(false)},true);
 addEventListener('wheel',()=>{if(S.auto)setAutoPlay(false)},{capture:true,passive:true});
@@ -1768,7 +1773,7 @@ async function startSource(src,btn){
   if(S.origEdit)exitOrigEdit(false);
   if(Engine.pending){toast('저장 중인 파일을 마무리하는 중…','ok',2000);await Promise.allSettled([...Engine.jobs.values()])}
   if(btn)btn.disabled=true;
-  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.cur=null;S.loadSeq++;
+  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.skipQc=new Set();secTxt();S.cur=null;S.loadSeq++;
     const sn=$('#srcName');sn.hidden=false;sn.querySelector('b').textContent=r.title;sn.title=r.title;
     renderList();updateStats();
     if(!S.files.length){toast(src.kind==='cloud'?'이 묶음에 나에게 보이는 파일이 없어요':'이미지 파일이 없습니다','warn',4000);return}
@@ -1971,9 +1976,12 @@ addEventListener('keydown',e=>{if(!e.altKey||!['ArrowLeft','ArrowRight'].include
   try{localStorage.setItem('scanqc:vgap',JSON.stringify({...VGAP,v:2}))}catch(e){}gapTxt();vO.render();vH.render();toast('두 이미지 사이 간격 '+VGAP.gap+'px','ok',1000)},true);
 $('#pSec').onclick=()=>{const m=$('#zmenu');if(m.style.display==='block'&&m.dataset.for==='sec'){m.style.display='none';return}
   const c=+S.cfg.auto_sec||3,r=$('#pSec').getBoundingClientRect();m.dataset.for='sec';
-  m.innerHTML='<div class="zm-h">자동 넘김 간격</div>'+AUTO_SECS.map(n=>`<button data-s="${n}" class="${n===c?'on':''}">${n}초</button>`).join('');
+  m.innerHTML='<div class="zm-cols"><div><div class="zm-h">자동 넘김 간격</div>'+AUTO_SECS.map(n=>`<button data-s="${n}" class="${n===c?'on':''}">${n}초</button>`).join('')+'</div>'
+    +'<div><div class="zm-h">경고가 떠도 넘기기</div>'+SKIP_QC.map(([k,t,err])=>`<button data-q="${k}" class="zm-ck${S.skipQc.has(k)?' on':''}"><i>${ic('check',11)}</i>${t}${err?'<em>오류</em>':''}</button>`).join('')
+    +'<div class="zm-note">체크한 경고는 멈추지 않고 넘겨요 · 경고 표시는 목록에 남아요 · 폴더를 새로 열면 꺼져요</div></div></div>';
   m.style.display='block';m.style.left=Math.min(r.left+r.width/2-m.offsetWidth/2,innerWidth-m.offsetWidth-8)+'px';m.style.top=(r.top-m.offsetHeight-8)+'px';
-  m.onclick=async ev=>{const t=ev.target.closest('[data-s]');if(!t)return;const n=+t.dataset.s;m.style.display='none';S.cfg.auto_sec=n;secTxt();
+  m.onclick=async ev=>{const q=ev.target.closest('[data-q]');if(q){const k=q.dataset.q;S.skipQc.has(k)?S.skipQc.delete(k):S.skipQc.add(k);q.classList.toggle('on',S.skipQc.has(k));secTxt();return}
+    const t=ev.target.closest('[data-s]');if(!t)return;const n=+t.dataset.s;m.style.display='none';S.cfg.auto_sec=n;secTxt();
     try{await api.post('/api/settings',{auto_sec:n})}catch(e){}if(S.auto)S.autoAt=Date.now();toast('자동 넘김 간격 '+n+'초','ok',1400)}};
 $('#pMag').onclick=()=>setMag(!S.mag);$('#magZ').oninput=e=>setMagZ(+e.target.value);
 $('#pHelp').onclick=()=>$('#mHelp').classList.add('show');
