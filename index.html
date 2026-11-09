@@ -1330,11 +1330,13 @@ function refresh(){if(!S.cur)return;if(!S.origEdit){if(dirty())S.memo[S.cur.name
   renderRight();renderLeft();syncUI();if(!S.origEdit)renderQC()}
 /* 보정본 화면 갱신 — 파일을 바꿀 때('reset')만 화면 맞춤, 그 외(도구 전환·크롭·회전·보정)는 확대 배율과 보던 위치 유지 */
 function renderRight(mode){const V=S.ev;if(!S.cur){vH.setSrc(null);return}
+  /* 지금 보이는 위치·배율을 먼저 기억 (원본 해상도로 바뀔 때 화면이 튀지 않게 — 그림을 다시 만들기 전에 계산) */
+  let pv=null;if(mode!=='reset'&&V.src&&V.info){const o=V.info,[cx,cy]=V.toSrc(V.w/2,V.h/2);
+    pv={fx:(cx+o.ox)/o.W,fy:(cy+o.oy)/o.H,sFull:V.scale*o.k,wasFit:Math.abs(V.zoom-1)<1e-4&&Math.abs(V.px)<.5&&Math.abs(V.py)<.5}}
   const view=S.tool==='crop'?'stage':'result',src=view==='stage'?buildStage():buildResult(),st=stageC.cv,cr=S.edits.crop,k=stageK();
   const info={W:st.width,H:st.height,k,ox:(view==='result'&&cr)?cr.x*st.width:0,oy:(view==='result'&&cr)?cr.y*st.height:0};
-  if(mode==='reset'||!V.src||!V.info){V.setSrc(src,false);V.info=info;updateCropBar();return}
-  const o=V.info,[cx,cy]=V.toSrc(V.w/2,V.h/2),fx=(cx+o.ox)/o.W,fy=(cy+o.oy)/o.H,sFull=V.scale*o.k,
-    wasFit=Math.abs(V.zoom-1)<1e-4&&Math.abs(V.px)<.5&&Math.abs(V.py)<.5;
+  if(!pv){V.setSrc(src,false);V.info=info;updateCropBar();return}
+  const {fx,fy,sFull,wasFit}=pv;
   V.src=src;V.info=info;
   if(wasFit){V.zoom=1;V.px=V.py=0}
   else{const s2=sFull/k;V.zoom=s2/V.fitS;const px=fx*info.W-info.ox,py=fy*info.H-info.oy;
