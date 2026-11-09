@@ -160,7 +160,7 @@ function ScanQCAnalyzeModule(root) {
     const [pb, p] = paperBox(g, w, h), mask = inkMask(g, p), inner = inset(pb, w, h);
     const cb = contentBox(mask, w, inner), sub = crop(mask, w, inner), sw = inner[2] - inner[0], sh = inner[3] - inner[1];
     let ink = 0; for (let i = 0; i < sub.length; i++) ink += sub[i]; ink = sub.length ? ink / sub.length : 0;
-    const [skew, conf] = estimateSkew(sub, sw, sh);
+    const [skew, conf] = cfg.skew ? estimateSkew(sub, sw, sh) : [0, 0];  /* 미세 기울기는 자동으로 고치지 않으므로 기본은 계산 생략 (분석 시간의 대부분) */
     const band = Math.max(2, Math.floor(Math.min(h, w) * 0.006));
     const S = { l: [1, 0, band + 1, h], r: [w - band - 1, 0, w - 1, h], t: [0, 1, w, band + 1], b: [0, h - band - 1, w, h - 1] };
     const dark = {}, touch = {};
