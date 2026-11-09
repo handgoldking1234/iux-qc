@@ -566,7 +566,8 @@ a.btn{text-decoration:none}
           <button class="btn btn-dark btn-sm btn-block" id="cClear" data-i="x" data-s="13">크롭 해제</button></div>
         <div class="opt" data-for="sel"><div class="opt-title"><span data-i="square-dashed" data-s="14"></span><b>선택</b><span style="flex:1"></span><span id="selTxt">없음</span></div>
           <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하면 이동<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
-          <div class="grid3"><button class="btn btn-dark btn-sm" id="selClear" title="Ctrl+D">해제</button><button class="btn btn-dark btn-sm" id="selInv">반전</button><button class="btn btn-dark btn-sm" id="selFill" title="Delete">흰색 채우기</button></div></div>
+          <div class="grid3"><button class="btn btn-dark btn-sm" id="selClear" title="Ctrl+D">해제</button><button class="btn btn-dark btn-sm" id="selInv">반전</button><button class="btn btn-dark btn-sm" id="selFill" title="Delete">흰색 채우기</button></div>
+          <div class="toggle" id="tSelFill" title="영역을 고르자마자 흰색으로 채우고 선택은 풀어요"><span>선택하면 바로 흰색 채우기</span><span class="sw" id="swSelFill"></span></div></div>
         <div class="opt" data-for="bucket"><div class="opt-title"><span data-i="paint-bucket" data-s="14"></span><b>페인트통</b></div>
           <div class="sl"><span>허용치</span><input type="range" id="kTol" min="0" max="128" step="1"><input type="number" id="kTolN" min="0" max="255"></div>
           <div class="swatches" id="kColors"><span style="font-size:12px;color:var(--sub);width:62px">색</span>
@@ -1018,6 +1019,8 @@ function outDims(){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edit
 /* 기능 보이기·숨기기 (설정) */
 const FEATS=[['zoom','확대·축소'],['rotate','자유 회전'],['crop','크롭'],['rsel','사각형 선택'],['esel','원형 선택'],['lasso','다각형 올가미'],['heal','힐링'],['stamp','복제 도장'],['erase','지우개'],['brush','브러시'],['pen','펜'],['bucket','페인트통'],['@auto','자동 보정 영역'],['@play','자동 넘김'],['@ai','AI 맞춤'],['@oedit','원본 수정'],['@color','색 보정'],['@curve','곡선']];
 const HIDE=new Set((()=>{try{return JSON.parse(localStorage.getItem('scanqc:hide')||'[]')}catch(e){return[]}})());
+/* 색 보정은 기본 숨김 (설정 > 기능 표시에서 다시 켤 수 있음) · 한 번만 적용 */
+try{if(localStorage.getItem('scanqc:hidev')!=='2'){HIDE.add('@color');localStorage.setItem('scanqc:hide',JSON.stringify([...HIDE]));localStorage.setItem('scanqc:hidev','2')}}catch(e){HIDE.add('@color')}
 function applyHide(){document.querySelectorAll('#segTool button[data-v]').forEach(b=>b.hidden=HIDE.has(b.dataset.v));
   const m={'@auto':['#secAuto'],'@play':['#pPlay','#pSec'],'@ai':['#pAI'],'@oedit':['#btnOEdit'],'@color':['#secColor'],'@curve':['#curveBox']};
   for(const k in m)for(const sel of m[k]){const el=document.querySelector(sel);if(el)el.hidden=HIDE.has(k)}
@@ -1230,7 +1233,7 @@ function bindViewer(v,isH){
   const end=()=>{if(!drag)return;const d=drag;drag=null;S.dragging=false;el.classList.remove('panning');
     if(d.type==='zoom'){if(!d.moved){const p=v.pct,t=d.alt?[...ZSTEPS].reverse().find(z=>z<p*.99):ZSTEPS.find(z=>z>p*1.01);if(t)v.setPct(t,d.ax,d.ay)}return}
     if(d.type==='rotate'){cancelAnimationFrame(d.raf);if(!same(d.snap,S.edits)){S.hist.push(d.snap);S.fut=[]}refresh(true);return}
-    if(d.type==='sel'){const dr=d.draft,st=stageC.cv;S.sel=(dr&&dr.w*st.width>3&&dr.h*st.height>3)?dr:null;v.render();syncUI();return}
+    if(d.type==='sel'){const dr=d.draft,st=stageC.cv;S.sel=(dr&&dr.w*st.width>3&&dr.h*st.height>3)?dr:null;v.render();syncUI();autoFillSel();return}
     if(d.type==='selmove'){v.render();syncUI();return}
     if(d.type==='lasso'){if(d.free)closePoly(d.pts);else{S.poly={pts:d.pts};S.sel=null;v.render();syncUI()}return}
     if(d.type==='paint'){const st=stageC.cv,k=stageK(),t=S.tool,b=S.brush;
@@ -1283,7 +1286,7 @@ function retarget(e,oldT){const newT=e.rot+e.tilt,d=newT-oldT;if(Math.abs(d)<1e-
 function setRot(deg){if(!S.cur)return;commit(e=>{const o=e.rot+e.tilt;e.rot=deg;retarget(e,o)},false)}
 function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100)/100;retarget(e,o)}
 function addTilt(d){if(!S.cur)return;if(S.tool==='crop'&&S.pending){S.pending={...S.pending,a:Math.round(((S.pending.a||0)-d)*100)/100};S.ev.render();return}commit(e=>setTilt(e,e.tilt+d))}
-function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}S.poly=null;
+function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}if(!S.origEdit)S.stick=t;if(t===S.tool&&t!=='select')return;S.poly=null;
   if(t==='crop'){S.pending=S.edits.crop?clone(S.edits.crop):{x:0,y:0,w:1,h:1}}else S.pending=null;
   S.tool=t;S.hover=null;$('#viewH').className='view t-'+t;if(!S.origEdit)$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select');renderRight();syncUI()}
 function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;
@@ -1563,6 +1566,7 @@ async function go(i){
     if(S.edits.pre&&S.edits.base==='orig'){const p=S.edits.pre;api.post('/api/analyze',{name:f.name,pre:p}).then(fx=>{if(S.cur&&S.cur.name===f.name){S.cur.fix={key:JSON.stringify(p),an:fx.an};renderQC()}}).catch(()=>{})}
     renderHead();renderQC();syncUI();renderPlayer();updateRow(i);updateStats();
     $('#welcome').style.display='none';$('#app').classList.add('loaded');if(!S.origEdit)placeTools();
+    if(!S.origEdit&&S.stick&&S.stick!=='select'&&!HIDE.has(S.stick)&&S.edits&&!S.cur.locked)setTool(S.stick);  /* 한번 고른 도구는 다음 파일에서도 그대로 */
     const pf=+(S.cfg.prefetch??1);if(pf>0){const names=S.files.slice(i+1,i+1+pf).map(x=>x.name);if(names.length)api.post('/api/prefetch',{names}).catch(()=>{})}
   }catch(e){if(seq===S.loadSeq){toast(e.message,'err',4000);S.cur=null;vO.setSrc(null);vH.setSrc(null);renderQC()}}
   finally{if(seq===S.loadSeq)setLoading(false)}}
@@ -1622,7 +1626,7 @@ function polySel(fp,inv){const xs=fp.map(q=>q[0]),ys=fp.map(q=>q[1]),x=Math.min(
   return{shape:'poly',pts:fp.map(q=>[+q[0].toFixed(5),+q[1].toFixed(5)]),x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,inv:!!inv}}
 function moveSel(s,dx,dy){const n={...s,x:s.x+dx,y:s.y+dy};if(s.pts)n.pts=s.pts.map(q=>[q[0]+dx,q[1]+dy]);return n}
 function closePoly(pts){const st=stageC.cv;S.poly=null;if(!st||!pts||pts.length<3){S.ev.render();syncUI();return}
-  const n=polySel(pts.map(q=>[q[0]/st.width,q[1]/st.height]));S.sel=(n.w*st.width>3&&n.h*st.height>3)?n:null;S.ev.render();syncUI()}
+  const n=polySel(pts.map(q=>[q[0]/st.width,q[1]/st.height]));S.sel=(n.w*st.width>3&&n.h*st.height>3)?n:null;S.ev.render();syncUI();autoFillSel()}
 /* 페인트통: 시작점과 색 차이가 허용치 이하인 점 중 이어진 곳만 (4방향) */
 function floodMask(a,W,H,sx,sy,tol){const m=new Uint8Array(W*H),o=(sy*W+sx)*4,R=a[o],G=a[o+1],B=a[o+2];
   const ok=i=>{const j=i*4;return Math.abs(a[j]-R)<=tol&&Math.abs(a[j+1]-G)<=tol&&Math.abs(a[j+2]-B)<=tol};
@@ -1640,8 +1644,12 @@ function syncSel(){const s=drag&&drag.type==='sel'?drag.draft:S.sel;
   $('#selTxt').textContent=`${s.shape==='poly'?'다각형':s.shape==='ellipse'?'원형':'사각형'} ${Math.round(Math.abs(s.w)*fw)}×${Math.round(Math.abs(s.h)*fh)}${s.inv?' · 반전':''}`}
 function clearSel(){if(!S.sel)return;S.sel=null;S.ev.render();syncUI()}
 function invertSel(){if(!S.sel){toast('먼저 영역을 선택하세요','warn');return}S.sel={...S.sel,inv:!S.sel.inv};S.ev.render();syncUI()}
-function fillSel(){if(!S.cur)return;if(!S.sel){toast('먼저 영역을 선택하세요','warn');return}
-  commit(e=>{e.paints=e.paints||[];e.paints.push({t:'fill',c:'#ffffff',sel:clone(S.sel)})});toast('선택 영역을 흰색으로 채웠어요')}
+function fillSel(quiet){if(!S.cur)return;if(!S.sel){toast('먼저 영역을 선택하세요','warn');return}
+  commit(e=>{e.paints=e.paints||[];e.paints.push({t:'fill',c:'#ffffff',sel:clone(S.sel)})});if(!quiet)toast('선택 영역을 흰색으로 채웠어요')}
+/* 선택하면 바로 흰색 채우기 (켜 두면 영역을 고를 때마다 채우고 선택은 풀기) */
+let SELFILL=(()=>{try{return localStorage.getItem('scanqc:selfill')==='1'}catch(e){return false}})();
+function syncSelFill(){$('#swSelFill').classList.toggle('on',SELFILL)}
+function autoFillSel(){if(!SELFILL||!S.sel||!S.cur||!S.edits)return;fillSel(true);S.sel=null;S.ev.render();syncUI()}
 /* 색 보정 대상: 선택 영역이 있으면 그 영역 전용 보정, 없으면 전체 */
 function curLocal(create){if(!S.sel||!S.edits)return null;const k=JSON.stringify(S.sel);
   let L=(S.edits.locals||[]).find(l=>JSON.stringify(l.sel)===k);
@@ -1872,7 +1880,7 @@ layoutPanels();addEventListener('resize',()=>{clearTimeout(layoutPanels.t);layou
 $('#btnLib').onclick=()=>togglePanel('lib');$('#btnIns').onclick=()=>togglePanel('ins');
 $('#mLib').onclick=()=>togglePanel('lib');$('#mIns').onclick=()=>togglePanel('ins');
 $('#scrim').onclick=()=>APP.classList.remove('lib-open','ins-open');
-$('#segTool').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.v;if(PAINT.has(t))S.lastPaint=t;setTool(S.tool===t&&t!=='select'?'select':t)};
+$('#segTool').onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=b.dataset.v;if(PAINT.has(t))S.lastPaint=t;setTool(t)};
 $('#segBase').onclick=e=>{const b=e.target.closest('button');if(b)toggleBase(b.dataset.v)};
 $('#swOnLoad').onclick=()=>{S.cfg.on_load=S.cfg.on_load==='hp'?(S.lastOnLoad||'auto'):(S.lastOnLoad=S.cfg.on_load,'hp');api.post('/api/settings',{on_load:S.cfg.on_load}).catch(()=>{});syncUI();
   toast(S.cfg.on_load==='hp'?'다음 파일부터 보정본 파일을 그대로 보여 줘요':S.cfg.on_load==='learn'?'다음 파일부터 작업 따라 배우기로 맞춰요':'다음 파일부터 원본에서 자동 보정해요');if(S.idx>=0&&!dirty()){delete S.memo[S.cur.name];go(S.idx)}};
@@ -1902,7 +1910,8 @@ for(let i=0;i<3;i++)liveSlider($('#cb'+i),$('#cbVals'),v=>{colorObj(true).cb[S.c
 $('#cbRange').onclick=e=>{const b=e.target.closest('button');if(b){S.cbRange=b.dataset.v;syncUI()}};
 $('#cvCh').onclick=e=>{const b=e.target.closest('button');if(b&&!b.disabled){S.cvCh=b.dataset.v;drawCurve()}};
 $('#cvReset').onclick=e=>{e.preventDefault();if(S.cur)commit(()=>{colorObj(true).cv[S.cvCh]=clone(ID_CURVE)})};
-$('#selClear').onclick=clearSel;$('#selInv').onclick=invertSel;$('#selFill').onclick=fillSel;
+$('#selClear').onclick=clearSel;$('#selInv').onclick=invertSel;$('#selFill').onclick=()=>fillSel();
+$('#tSelFill').onclick=()=>{SELFILL=!SELFILL;try{localStorage.setItem('scanqc:selfill',SELFILL?'1':'0')}catch(e){}syncSelFill();toast(SELFILL?'영역을 고르면 바로 흰색으로 채워요':'흰색 자동 채우기를 껐어요')};syncSelFill();
 liveSlider($('#sizeR'),$('#sizeN'),v=>S.edits.resize.value=v);
 $('#tGray').onclick=()=>{if(S.cur)commit(()=>{const c=colorObj(true);c.gray=!c.gray})};
 $('#btnLevels').onclick=()=>{if(!S.cur)return;const lv=anOf(baseSide()).levels;commit(()=>{const c=colorObj(true);c.black=clamp(lv[0],0,128);c.white=clamp(lv[1],128,255)});toast(`자동 레벨 · 검정 ${lv[0]} / 흰색 ${lv[1]}`)};
@@ -2000,22 +2009,22 @@ document.addEventListener('keydown',e=>{
   switch(e.code){
     case'Space':if(!e.repeat)saveNext();break;
     case'ArrowRight':case'ArrowLeft':case'ArrowUp':case'ArrowDown':if(S.tool==='crop'&&S.pending){cropNudge(e.code,e.shiftKey?10:1);break}if(e.code==='ArrowRight')saveNext();else if(e.code==='ArrowLeft')prev();else hit=false;break;
-    case'KeyT':setTool(S.tool==='rotate'?'select':'rotate');break;
-    case'KeyL':setTool(S.tool==='rsel'?'select':'rsel');break;
-    case'KeyU':setTool(S.tool==='esel'?'select':'esel');break;
+    case'KeyT':setTool('rotate');break;
+    case'KeyL':setTool('rsel');break;
+    case'KeyU':setTool('esel');break;
     case'Delete':case'Backspace':if(S.poly){S.poly.pts.pop();if(!S.poly.pts.length)S.poly=null;S.ev.render()}else if(S.sel)fillSel();else hit=false;break;
-    case'KeyY':setTool(S.tool==='lasso'?'select':'lasso');break;
-    case'KeyG':setTool(S.tool==='bucket'?'select':'bucket');break;
-    case'KeyJ':S.lastPaint='heal';setTool(S.tool==='heal'?'select':'heal');break;
-    case'KeyK':S.lastPaint='stamp';setTool(S.tool==='stamp'?'select':'stamp');break;
-    case'KeyP':S.lastPaint='pen';setTool(S.tool==='pen'?'select':'pen');break;
+    case'KeyY':setTool('lasso');break;
+    case'KeyG':setTool('bucket');break;
+    case'KeyJ':S.lastPaint='heal';setTool('heal');break;
+    case'KeyK':S.lastPaint='stamp';setTool('stamp');break;
+    case'KeyP':S.lastPaint='pen';setTool('pen');break;
     case'KeyS':setRot(0);break;case'KeyD':setRot(90);break;case'KeyW':setRot(180);break;case'KeyA':setRot(270);break;
     case'Comma':addTilt(sh?-.1:-.5);break;case'Period':addTilt(sh?.1:.5);break;
-    case'KeyC':setTool(S.tool==='crop'?'select':'crop');break;
-    case'KeyE':S.lastPaint='erase';setTool(S.tool==='erase'?'select':'erase');break;
+    case'KeyC':setTool('crop');break;
+    case'KeyE':S.lastPaint='erase';setTool('erase');break;
     case'KeyH':setTool('select');break;
     case'KeyR':case'Enter':case'NumpadEnter':if(S.poly&&e.code!=='KeyR')closePoly(S.poly.pts);else if(S.tool==='crop')confirmCrop();else hit=e.code==='KeyR'&&false;break;
-    case'KeyZ':setTool(S.tool==='zoom'?'select':'zoom');break;
+    case'KeyZ':setTool('zoom');break;
     case'KeyM':setMag(!S.mag);break;
     case'BracketLeft':if(PAINT.has(S.tool))setBrushSize(S.brush.size[S.tool]/1.2);else setMagZ(S.magZ-.5);break;
     case'BracketRight':if(PAINT.has(S.tool))setBrushSize(Math.max(S.brush.size[S.tool]+1,S.brush.size[S.tool]*1.2));else setMagZ(S.magZ+.5);break;
@@ -2023,7 +2032,7 @@ document.addEventListener('keydown',e=>{
     case'KeyF':if(!e.ctrlKey&&!e.metaKey){e.preventDefault();applyAI()}break;
     case'KeyQ':copyOriginal();break;
     case'KeyV':if(!S.origEdit)pastePrev();break;
-    case'KeyB':S.lastPaint='brush';setTool(S.tool==='brush'?'select':'brush');break;
+    case'KeyB':S.lastPaint='brush';setTool('brush');break;
     case'KeyX':$('#btnReset').click();break;
     case'Digit0':case'Numpad0':vO.fit();vH.fit();break;
     case'Tab':if(sh){if(!S.origEdit)setSolo(!S.solo)}else setFocus(!APP.classList.contains('focus'));break;
