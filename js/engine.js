@@ -13,6 +13,7 @@
   const natcmp = (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
   const stemOf = n => n.replace(/\.[^.]+$/, '').toLowerCase();
+  const bkName = n => n.replace(/\//g, '__');  /* 백업은 한 폴더에: 하위 경로의 / 를 __ 로 */
   const MIME = { '.tif': 'image/tiff', '.tiff': 'image/tiff', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.bmp': 'image/bmp' };
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   function uaShort() {
@@ -155,18 +156,28 @@
     constructor(origDir, hpDir, rec) { this.kind = 'local'; this.o = origDir; this.h = hpDir; this.rec = rec; this.persistT = null; }
     get label() { return { mode: 'local', orig_folder: this.o.name, hp_folder: this.h.name }; }
     get title() { return `${this.rec.origPath || this.o.name} → ${this.rec.hpPath || this.h.name}`; }
-    static async list(dir) {
-      const m = new Map();
-      for await (const [n, hd] of dir.entries()) {
-        if (hd.kind !== 'file' || n.startsWith('.') || n.startsWith('~')) continue;
-        if (!Codec.EXTS.includes(Codec.extOf(n))) continue;
-        const s = stemOf(n); if (!m.has(s)) m.set(s, { name: n, h: hd });
-      }
+    /* 하위 폴더까지 모두 찾음 · 이름 = 하위 경로 (예: 0001/0001-001.tif) · 다른 쪽 폴더가 안에 들어 있으면 건너뜀 */
+    static async list(dir, skip) {
+      const m = new Map(), walk = async (d, pre) => {
+        for await (const [n, hd] of d.entries()) {
+          if (n.startsWith('.') || n.startsWith('~')) continue;
+          if (hd.kind === 'directory') { if (skip && hd.isSameEntry && await hd.isSameEntry(skip).catch(() => false)) continue; await walk(hd, pre + n + '/'); continue; }
+          if (!Codec.EXTS.includes(Codec.extOf(n))) continue;
+          const r = pre + n, s = stemOf(r); if (!m.has(s)) m.set(s, { name: r, h: hd });
+        }
+      };
+      await walk(dir, '');
       return m;
+    }
+    /* 하위 경로로 파일 핸들 얻기 (없으면 폴더까지 만들기) */
+    static async fileAt(root, rel, create) {
+      const parts = rel.split('/'), fn = parts.pop(); let d = root;
+      for (const p of parts) d = await d.getDirectoryHandle(p, { create });
+      return d.getFileHandle(fn, { create });
     }
     async open() {
       if (!(await IDB.all().then(() => true, () => false))) await this.loadFromFolder();
-      const [H, O] = await Promise.all([LocalSource.list(this.h), LocalSource.list(this.o)]);
+      const [H, O] = await Promise.all([LocalSource.list(this.h, this.o), LocalSource.list(this.o, this.h)]);
       const stems = [...new Set([...H.keys(), ...O.keys()])].sort(natcmp), st = this.rec.statuses || {};
       this.files = stems.map(s => {
         const h = H.get(s), o = O.get(s), name = (h || o).name;
@@ -189,22 +200,22 @@
     }
     async hasBackup(name) {
       const f = this.file(name); if (!f || !f.hpName) return false;
-      try { const d = await this.backupDir(false); await d.getFileHandle(f.hpName); return true; } catch (e) { return false; }
+      try { const d = await this.backupDir(false); await d.getFileHandle(bkName(f.hpName)); return true; } catch (e) { return false; }
     }
     async backup(name) {
       const f = this.file(name), d = await this.backupDir(true), src = await f.hpH.getFile();
-      const w = await (await d.getFileHandle(f.hpName, { create: true })).createWritable(); await w.write(src); await w.close();
+      const w = await (await d.getFileHandle(bkName(f.hpName), { create: true })).createWritable(); await w.write(src); await w.close();
     }
     async writeHP(name, bytes, status, log) {
       const f = this.file(name), target = f.target;
       if (Engine.cfg.backup && f.hpH && !(await this.hasBackup(name))) { try { await this.backup(name); } catch (e) { console.warn('backup', e); } }
-      const hd = (f.hpH && f.hpName === target) ? f.hpH : await this.h.getFileHandle(target, { create: true });
+      const hd = (f.hpH && f.hpName === target) ? f.hpH : await LocalSource.fileAt(this.h, target, true);
       const w = await hd.createWritable(); await w.write(bytes); await w.close();
       f.hpH = hd; f.hpName = target;
       this.setStatus(name, status, log && log.action, log && log.detail);
     }
     async restore(name) {
-      const f = this.file(name), d = await this.backupDir(false), src = await (await d.getFileHandle(f.hpName)).getFile();
+      const f = this.file(name), d = await this.backupDir(false), src = await (await d.getFileHandle(bkName(f.hpName))).getFile();
       const w = await f.hpH.createWritable(); await w.write(src); await w.close();
       this.setStatus(name, '', 'restore');
     }

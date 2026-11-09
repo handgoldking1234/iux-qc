@@ -1519,13 +1519,21 @@ function rowHTML(f,i){const st=STATUS[f.status||''],cur=i===S.idx;
   return`<div class="row${cur?' cur':''}" data-i="${i}"><span class="no">${cur?'<span class="eq"><i></i><i></i><i></i></span>':i+1}</span>
   <span class="nm"><b>${f.name}</b><small>${f.qc?`<span class="dot ${f.qc}"></span>`:''}${st.t}${!f.hp?' · HP 없음':''}</small></span>
   <span class="st ${st.c}">${ic(st.i,16)}</span></div>`}
-function renderList(){const L=$('#list'),items=S.files.map((f,i)=>[f,i]).filter(([f])=>matchFilter(f));
-  L.innerHTML=items.length?items.map(([f,i])=>rowHTML(f,i)).join(''):`<div class="empty-list">${S.files.length?'조건에 맞는 파일이 없습니다':'폴더를 불러오면 파일 목록이 여기에 표시됩니다'}</div>`;
-  renderChips();scrollCur()}
-function updateRow(i){const el=$(`#list .row[data-i="${i}"]`),f=S.files[i];if(!f)return;
-  if(!matchFilter(f)){if(el)el.remove();return}
-  if(el){const t=document.createElement('div');t.innerHTML=rowHTML(f,i);el.replaceWith(t.firstElementChild)}}
-function scrollCur(){const el=$(`#list .row[data-i="${S.idx}"]`);if(el)el.scrollIntoView({block:'nearest'})}
+/* 파일 목록: 보이는 줄만 그림 (5,000~10,000장 폴더도 가볍게) · 한 줄 높이 44px 고정 */
+const ROW_H=44;S.vItems=[];S.vPos=new Map();S.vWin=[-1,-1];
+function buildItems(){S.vItems=[];S.vPos=new Map();for(let i=0;i<S.files.length;i++)if(matchFilter(S.files[i])){S.vPos.set(i,S.vItems.length);S.vItems.push(i)}}
+function renderWin(force){const L=$('#list'),n=S.vItems.length;
+  if(!n){L.innerHTML=`<div class="empty-list">${S.files.length?'조건에 맞는 파일이 없습니다':'폴더를 불러오면 파일 목록이 여기에 표시됩니다'}</div>`;S.vWin=[-1,-1];return}
+  const top=L.scrollTop,vh=L.clientHeight||600,a=Math.max(0,Math.floor(top/ROW_H)-15),b=Math.min(n,Math.ceil((top+vh)/ROW_H)+15);
+  if(!force&&a===S.vWin[0]&&b===S.vWin[1])return;S.vWin=[a,b];
+  let h=`<div style="height:${a*ROW_H}px"></div>`;for(let k=a;k<b;k++){const i=S.vItems[k];h+=rowHTML(S.files[i],i)}
+  L.innerHTML=h+`<div style="height:${(n-b)*ROW_H}px"></div>`}
+function renderList(){buildItems();renderWin(true);renderChips();scrollCur()}
+function updateRow(i){const f=S.files[i];if(!f)return;
+  if(matchFilter(f)!==S.vPos.has(i)){buildItems();renderWin(true);return}
+  const el=$(`#list .row[data-i="${i}"]`);if(el){const t=document.createElement('div');t.innerHTML=rowHTML(f,i);el.replaceWith(t.firstElementChild)}}
+function scrollCur(){const L=$('#list'),k=S.vPos.get(S.idx);if(k==null)return;const y=k*ROW_H,pad=parseFloat(getComputedStyle(L).paddingTop)||0;
+  if(y<L.scrollTop)L.scrollTop=y;else if(y+ROW_H>L.scrollTop+L.clientHeight-pad-8)L.scrollTop=y+ROW_H-L.clientHeight+pad+8;renderWin()}
 function renderChips(){const cnt=k=>S.files.filter(f=>k==='all'||(k==='todo'?!f.status:k==='warn'?!!f.qc:f.status===k)).length;
   $('#chips').innerHTML=FILTERS.map(([k,t])=>`<button class="chip${S.filter===k?' on':''}" data-f="${k}">${t}<em>${cnt(k)}</em></button>`).join('')}
 function updateStats(){const n=S.files.length,c={};for(const f of S.files)c[f.status||'']=(c[f.status||'']||0)+1;
@@ -1875,7 +1883,8 @@ $('#sLog').onclick=async()=>{const src=Engine.src;if(!src){toast('먼저 폴더�
     csv='\ufeff'+[['time','file','action','detail'],...data.map(r=>[r.at,r.file_name,r.action,JSON.stringify(r.detail||{})])].map(r=>r.map(q).join(',')).join('\r\n')}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`scanqc_log_${src.title.replace(/[\\/:*?"<>| ]+/g,'_')}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 $('#chips').onclick=e=>{const b=e.target.closest('[data-f]');if(!b)return;S.filter=b.dataset.f;renderList()};
-$('#q').oninput=e=>{S.q=e.target.value.trim().toLowerCase();renderList()};
+$('#q').oninput=e=>{S.q=e.target.value.trim().toLowerCase();clearTimeout(S.qT);S.qT=setTimeout(renderList,120)};
+$('#list').addEventListener('scroll',()=>{if(!S.vRaf)S.vRaf=requestAnimationFrame(()=>{S.vRaf=0;renderWin()})},{passive:true});new ResizeObserver(()=>renderWin()).observe($('#list'));
 $('#list').onclick=e=>{const r=e.target.closest('.row');if(r){jumpTo(+r.dataset.i);if(MOB.matches)APP.classList.remove('lib-open')}};
 /* 양쪽 패널 접기 · 좁은 화면에서는 서랍처럼 열고 닫기 */
 const APP=$('#app'),MOB=matchMedia('(max-width:860px)');
