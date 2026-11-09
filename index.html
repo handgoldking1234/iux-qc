@@ -562,7 +562,7 @@ a.btn{text-decoration:none}
         <div class="opt" data-for="rotate"><div class="opt-title"><span data-i="rotate-cw" data-s="14"></span><b>자유 회전</b></div>
           <div class="hint" style="margin:0">이미지를 잡고 돌리세요 · 0.1° 단위, Shift는 1° 단위<br>, . 키로 ±0.5°</div></div>
         <div class="opt" data-for="crop"><div class="opt-title"><span data-i="crop" data-s="14"></span><b>크롭</b><span style="flex:1"></span><span id="cropTxt">없음</span></div>
-          <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · R 확정</div>
+          <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · 손바닥(H)으로 화면 이동 · R 확정</div>
           <button class="btn btn-dark btn-sm btn-block" id="cClear" data-i="x" data-s="13">크롭 해제</button></div>
         <div class="opt" data-for="sel"><div class="opt-title"><span data-i="square-dashed" data-s="14"></span><b>선택</b><span style="flex:1"></span><span id="selTxt">없음</span></div>
           <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하면 이동<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
@@ -1171,7 +1171,7 @@ function bindViewer(v,isH){
     cv.setPointerCapture(e.pointerId);hideMag();
     const[sx0,sy0]=v.toSrc(x,y),outside=sx0<0||sy0<0||sx0>v.src.width||sy0>v.src.height;
     if(S.tool==='zoom'&&e.button===0){drag={type:'zoom',v,x0:x,ax:x,ay:y,p0:v.pct,moved:false,alt:e.altKey};S.dragging=true;return}
-    if(e.button===1||e.button===2||tool==='select'||(e.altKey&&tool!=='stamp')){drag={type:'pan',v,x0:x,y0:y,px:v.px,py:v.py};el.classList.add('panning')}
+    if(e.button===1||e.button===2||tool==='select'||(tool==='crop'&&S.cropPan)||(e.altKey&&tool!=='stamp')){drag={type:'pan',v,x0:x,y0:y,px:v.px,py:v.py};el.classList.add('panning')}
     else if(tool==='rotate'||(tool==='crop'&&S.pending&&!hitCrop(x,y))){const g=tool==='crop'?cropGeo(S.pending,v.src):null,[cx,cy]=g?v.toScr(g.cx,g.cy):v.toScr(v.src.width/2,v.src.height/2);
       drag={type:'rotate',cx,cy,mx:x,my:y,a0:Math.atan2(y-cy,x-cx),snap:clone(S.edits),pend:S.pending&&clone(S.pending)}}
     else if(tool==='bucket'){const[px,py]=srcToStage(sx0,sy0),st=stageC.cv;if(!st||px<0||py<0||px>=st.width||py>=st.height)return;const b=S.bucket;
@@ -1194,7 +1194,7 @@ function bindViewer(v,isH){
     S.dragging=true});
   cv.addEventListener('pointermove',e=>{const[x,y]=pos(e);
     if(!drag){
-      if(v===S.ev&&S.tool==='crop'){const h=hitCrop(x,y);cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}
+      if(v===S.ev&&S.tool==='crop'){if(S.cropPan)cv.style.cursor='';else{const h=hitCrop(x,y);cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}}
       else if(v===S.ev&&S.tool==='rotate'&&v.src)cv.style.cursor=rotCursor(v,x,y);else cv.style.cursor='';
       if(v===S.ev&&S.poly&&v.src){const[sx,sy]=v.toSrc(x,y);S.poly.hv=srcToStage(sx,sy);v.render()}
       if(v===S.ev&&PAINT.has(S.tool)&&v.src){const[sx,sy]=v.toSrc(x,y);S.hover={v,x,y,st:srcToStage(sx,sy)};v.render()}
@@ -1286,17 +1286,21 @@ function retarget(e,oldT){const newT=e.rot+e.tilt,d=newT-oldT;if(Math.abs(d)<1e-
 function setRot(deg){if(!S.cur)return;commit(e=>{const o=e.rot+e.tilt;e.rot=deg;retarget(e,o)},false)}
 function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100)/100;retarget(e,o)}
 function addTilt(d){if(!S.cur)return;if(S.tool==='crop'&&S.pending){S.pending={...S.pending,a:Math.round(((S.pending.a||0)-d)*100)/100};S.ev.render();return}commit(e=>setTilt(e,e.tilt+d))}
-function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}if(!S.origEdit)S.stick=t;if(t===S.tool&&t!=='select')return;S.poly=null;
+function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}
+  /* 크롭 중 손바닥: 크롭은 그대로 두고 화면만 끌어서 이동 · 크롭 버튼(C)으로 다시 조절 */
+  if(S.tool==='crop'&&S.pending){if(t==='select'){if(!S.cropPan){S.cropPan=true;$('#viewH').className='view t-select';syncUI();toast('크롭은 그대로 · 끌어서 화면 이동 · C 로 다시 조절','ok',1800)}return}
+    if(t==='crop'){if(S.cropPan){S.cropPan=false;$('#viewH').className='view t-crop';syncUI()}return}}
+  S.cropPan=false;if(!S.origEdit)S.stick=t;if(t===S.tool&&t!=='select')return;S.poly=null;
   if(t==='crop'){S.pending=S.edits.crop?clone(S.edits.crop):{x:0,y:0,w:1,h:1}}else S.pending=null;
   S.tool=t;S.hover=null;$('#viewH').className='view t-'+t;if(!S.origEdit)$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select');renderRight();syncUI()}
-function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;
+function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;S.cropPan=false;
   S.pending=null;S.tool='select';$('#viewH').className='view t-select';
   if(Math.abs(a)<1e-6){const full=p.x<=0.0005&&p.y<=0.0005&&p.w>=.999&&p.h>=.999;commit(e=>{e.crop=full?null:{x:p.x,y:p.y,w:p.w,h:p.h}},false);return}
   commit(e=>{const m=baseMeta(),oT=e.rot+e.tilt,[W0,H0]=rotDims(m.w,m.h,oT);setTilt(e,e.tilt-a);
     const nT=e.rot+e.tilt,[W1,H1]=rotDims(m.w,m.h,nT),d=rad(nT-oT),cs=Math.cos(d),sn=Math.sin(d);
     const x=(p.x+p.w/2)*W0-W0/2,y=(p.y+p.h/2)*H0-H0/2,cx=(x*cs-y*sn+W1/2)/W1,cy=(x*sn+y*cs+H1/2)/H1,w=p.w*W0/W1,h=p.h*H0/H1;
     e.crop={x:cx-w/2,y:cy-h/2,w,h}},false)}
-function cancelCrop(){S.pending=null;setTool('select')}
+function cancelCrop(){S.pending=null;S.cropPan=false;setTool('select')}
 function updateCropBar(){const show=S.tool==='crop'&&S.pending,cb=$('#cropbar');if(cb.parentNode.id!=='qcCrop')$('#qcCrop').appendChild(cb);cb.classList.toggle('show',!!show);document.querySelector('.stage').classList.toggle('cropping',!!show);
   if(show){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt),P=S.pending;$('#cropInfo').textContent=`${Math.round(P.w*rw)} × ${Math.round(P.h*rh)} px`;
     const v={cL:P.x*rw,cT:P.y*rh,cR:(1-P.x-P.w)*rw,cB:(1-P.y-P.h)*rh};for(const k in v){const i=$('#'+k);if(document.activeElement!==i)i.value=Math.round(v[k])}}}
@@ -1451,7 +1455,7 @@ function setBrushSize(v){const t=PAINT.has(S.tool)?S.tool:(S.lastPaint||'heal');
 function setRange(el,v){el.value=v;const p=(v-el.min)/(el.max-el.min)*100;el.style.setProperty('--p',clamp(p,0,100)+'%')}
 function syncUI(){try{secTxt()}catch(e){}
   const has=!!S.cur;
-  $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool));
+  $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool||(S.cropPan&&S.tool==='crop'&&b.dataset.v==='select')));
 
   $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');$('#swLabel').classList.toggle('on',S.cfg.label_rot!==false);
   setRange($('#trim'),Math.min(20,S.cfg.trim_px??2));$('#trimN').value=S.cfg.trim_px??2;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??2}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
@@ -1539,7 +1543,7 @@ async function go(i){
   if(S.origEdit)exitOrigEdit(false);
   clearTimeout(S.draftT);
   // 새 파일은 처음 상태로: 도구·선택·도장 원점·크롭 대기·곡선/색 균형 탭·되돌리기 기록
-  S.tool='select';S.pending=null;S.sel=null;S.poly=null;S.stampSrc=null;S.stampOff=null;S.hover=null;S.cvCh='rgb';S.cbRange='m';S.hist=[];S.fut=[];
+  S.tool='select';S.cropPan=false;S.pending=null;S.sel=null;S.poly=null;S.stampSrc=null;S.stampOff=null;S.hover=null;S.cvCh='rgb';S.cbRange='m';S.hist=[];S.fut=[];
   const seq=++S.loadSeq,prev=S.idx;S.idx=i;const f=S.files[i];
   S.tool='select';S.pending=null;$('#viewH').className='view t-select';hideMag();
   updateRow(prev);updateRow(i);scrollCur();renderPlayer();setLoading(true);
@@ -2000,7 +2004,7 @@ document.addEventListener('keydown',e=>{
   const t=e.target,typing=(t.tagName==='INPUT'&&!['range','checkbox','button'].includes(t.type))||t.tagName==='TEXTAREA'||t.tagName==='SELECT';
   if(e.code==='Escape'){const open=$('.modal-bg.show');if(open){open.classList.remove('show');return}
     if(S.origEdit&&!typing&&S.tool==='select'){exitOrigEdit(false);return}
-    if(typing){t.blur();return}if(S.poly){S.poly=null;S.ev.render();return}if(S.tool==='crop')cancelCrop();else if(S.tool!=='select')setTool('select');return}
+    if(typing){t.blur();return}if(S.poly){S.poly=null;S.ev.render();return}if(S.tool==='crop'&&S.cropPan){setTool('crop');return}if(S.tool==='crop')cancelCrop();else if(S.tool!=='select')setTool('select');return}
   if(typing)return;
   if($('.modal-bg.show')){if(e.code==='Slash')$('#mHelp').classList.remove('show');return}
   const ctrl=e.ctrlKey||e.metaKey;
