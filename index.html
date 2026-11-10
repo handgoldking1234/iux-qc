@@ -304,9 +304,9 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np-art{width:56px;height:56px;border-radius:4px;background:var(--elev2);display:grid;place-items:center;color:var(--sub);flex:none;overflow:hidden}
 .np-art canvas{width:56px;height:56px;object-fit:cover}
 /* 지금 파일 이름·순번·상태: 두 창 사이 위쪽 가운데 한 줄 (검수하면서 한눈에) */
-.fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:52px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.86);border:1px solid #2c2c2c;backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
+.fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:66px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.8);backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
 .fchip[hidden]{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px;flex:none}
-.app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:46px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
+.app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:52px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
 .np-txt{min-width:0}
 .np-txt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-txt small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px}
@@ -1029,13 +1029,15 @@ function applyHide(){document.querySelectorAll('#segTool button[data-v]').forEac
   for(const k in m)for(const sel of m[k]){const el=document.querySelector(sel);if(el)el.hidden=HIDE.has(k)}
   if(HIDE.has(S.tool))setTool('select')}
 function renderFeats(){$('#sFeats').innerHTML=FEATS.map(([k,n])=>`<label><input type="checkbox" data-k="${k}" ${HIDE.has(k)?'':'checked'}>${n}</label>`).join('')}
+/* 파일 이름 줄(위쪽 가운데)이 차지하는 높이 — 이미지는 그 아래에 맞춤 */
+function topR(){return innerWidth<=860?30:40}
 const VGAP=(()=>{const d={mode:'inner',gap:100,v:2};try{const o=JSON.parse(localStorage.getItem('scanqc:vgap')||'{}');return o.v===2?Object.assign(d,o):d}catch(e){return d}})();
 class Viewer{
   constructor(el){this.el=el;this.cv=document.createElement('canvas');el.appendChild(this.cv);this.ctx=this.cv.getContext('2d');
     this.src=null;this.zoom=1;this.px=0;this.py=0;this.overlay=null;new ResizeObserver(()=>this.resize()).observe(el);this.resize()}
   resize(){const r=this.el.getBoundingClientRect(),d=devicePixelRatio||1;this.w=r.width;this.h=r.height;this.dpr=d;
     this.cv.width=Math.max(1,Math.round(r.width*d));this.cv.height=Math.max(1,Math.round(r.height*d));this.render();const o=this.pair&&this.pair();if(o&&o.src)o.render()}
-  get rawFit(){if(!this.src)return 1;/* 상하·좌우 같은 여백 (세로·가로 문서 모두 테두리에서 같은 거리) */const f=APP.classList.contains('focus'),g=Math.max(f?20:36,Math.min(this.w,this.h)*(f?.045:.07)),mx=2*g,my=2*g;return Math.min(Math.max(40,this.w-mx)/this.src.width,Math.max(40,this.h-my)/this.src.height)}
+  get rawFit(){if(!this.src)return 1;/* 상하·좌우 같은 여백 (세로·가로 문서 모두 테두리에서 같은 거리) */const f=APP.classList.contains('focus'),g=Math.max(f?20:36,Math.min(this.w,this.h)*(f?.045:.07)),mx=2*g,my=2*g+topR();return Math.min(Math.max(40,this.w-mx)/this.src.width,Math.max(40,this.h-my)/this.src.height)}
   /* 원본·보정본을 같은 배율로 맞춤: 두 화면 중 더 좁은 쪽 기준 (화면 크기가 달라도 같은 크기로 보임) */
   get fitS(){const r=this.rawFit;if(!this.src)return r;const o=this.pair&&this.pair();if(!o||!o.src||o.w<60||o.h<60||!this.kFn||!o.kFn)return r;
     const k=this.kFn(),ko=o.kFn();if(!(k>0&&ko>0))return r;return Math.min(r,o.rawFit*ko/k)}
@@ -1044,12 +1046,13 @@ class Viewer{
   get pct(){return this.src?this.scale*(this.kFn?this.kFn():1)*(devicePixelRatio||1)*100:100}
   setPct(p,x,y){if(!this.src)return;p=clamp(p,1,3200);if(x==null){x=this.w/2;y=this.h/2}
     const[sx,sy]=this.toSrc(x,y),s2=p/100/((this.kFn?this.kFn():1)*(devicePixelRatio||1));
-    this.zoom=s2/this.fitS;this.px=x-sx*s2-this.baseX(s2);this.py=y-sy*s2-(this.h-this.src.height*s2)/2;
+    this.zoom=s2/this.fitS;this.px=x-sx*s2-this.baseX(s2);this.py=y-sy*s2-this.baseY(s2);
     this.render();maybeHQ(this)}
   /* 두 이미지를 가운데로 붙임: 원본은 오른쪽, 보정본은 왼쪽으로 · 사이 간격(VGAP)은 설정에서 고정 */
   alignOff(s){const o=this.pair&&this.pair();if(!this.side||VGAP.mode==='center'||!o||o.w<60||o.h<60)return 0;const slack=(this.w-this.src.width*s)/2-VGAP.gap/2;return slack>0?this.side*slack:0}
   baseX(s){return(this.w-this.src.width*s)/2+this.alignOff(s)}
-  get origin(){const s=this.scale;return[this.baseX(s)+this.px,(this.h-this.src.height*s)/2+this.py]}
+  baseY(s){return(this.h+topR()-this.src.height*s)/2}  /* 위쪽에 파일 이름 줄 자리만큼 비우고 그 아래에서 가운데 */
+  get origin(){const s=this.scale;return[this.baseX(s)+this.px,this.baseY(s)+this.py]}
   toSrc(x,y){const s=this.scale,[ox,oy]=this.origin;return[(x-ox)/s,(y-oy)/s]}
   toScr(x,y){const s=this.scale,[ox,oy]=this.origin;return[ox+x*s,oy+y*s]}
   setSrc(src,keep){const same=keep&&this.src&&src&&Math.abs(this.src.width/this.src.height-src.width/src.height)<.002;
@@ -1342,7 +1345,7 @@ function renderRight(mode){const V=S.ev;if(!S.cur){vH.setSrc(null);return}
   V.src=src;V.info=info;
   if(wasFit){V.zoom=1;V.px=V.py=0}
   else{const s2=sFull/k;V.zoom=s2/V.fitS;const px=fx*info.W-info.ox,py=fy*info.H-info.oy;
-    V.px=(V.w/2-px*s2)-V.baseX(s2);V.py=(V.h/2-py*s2)-(V.h-src.height*s2)/2}
+    V.px=(V.w/2-px*s2)-V.baseX(s2);V.py=(V.h/2-py*s2)-V.baseY(s2)}
   V.render();updateCropBar()}
 function renderLeft(){if(!S.cur||S.origEdit)return;const p=preOf();vO.setSrc(p?preCanvas(p):S.cur.imgO,true);
   $('#oTag').hidden=!p;const m=p?preMeta(p):(S.cur.info.orig&&S.cur.info.orig.meta);$('#hO').textContent=m?`${m.w}×${m.h}`:'원본 없음'}
