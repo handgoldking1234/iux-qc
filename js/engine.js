@@ -523,12 +523,11 @@
       if (this.jobs.has(name)) await this.jobs.get(name).catch(() => { });
       const f = this.src.file(name); if (!f) throw new Error('목록에 없는 파일: ' + name);
       const out = { name, hp: null, orig: null };
-      const ds = {}; for (const side of ['hp', 'orig']) if (f.has(side)) { ds[side] = this.decoded(name, side, undefined, !pre); ds[side].catch(() => { }); }  // 원본·보정본 동시에
+      const ds = {}; for (const side of ['hp', 'orig']) if (f.has(side)) { ds[side] = this.decoded(name, side, undefined, !pre || pre === 'keep'); ds[side].catch(() => { }); }  // 원본·보정본 동시에
       for (const side of ['hp', 'orig']) if (f.has(side)) {
         const d = await ds[side], an = await this.analysis(name, side, d);
         out[side] = { meta: d.meta, pw: d.prev.width, ph: d.prev.height, an, v: d.ver, trim: trimFrom(d.edges, trimMax(this.cfg, d.meta)), label: d.label === undefined ? (d.label = labelRot(d.gray)) : d.label };
       }
-      if (!pre) { const side = f.has('hp') ? 'hp' : 'orig'; ds[side].then(d => { if (!d.full && !d.fullData) setTimeout(() => { if (this.dec.has(d.key)) this.fullOf(name, side, d).catch(() => { }); }, 800); }, () => { }); }  // 미리 읽은 파일: 확대·저장용 원래 크기를 뒤에서 준비
       out.qc = Analyze.qc(out.hp, out.orig, this.cfg);
       out.status = f.status; out.backup = await this.src.hasBackup(name);
       return out;
@@ -538,7 +537,7 @@
     keepFull(e) {
       const C = this.fullC || (this.fullC = new Map()); C.delete(e.key); C.set(e.key, e);
       const px = () => { let t = 0; for (const x of C.values()) { const f = x.full || x.fullData; if (f) t += f.width * f.height; } return t; };
-      while (C.size > 1 && (C.size > 2 || px() > 120e6)) { const k = C.keys().next().value, o = C.get(k); C.delete(k); o.full = null; o.fullData = null; }
+      while (C.size > 1 && (C.size > 4 || px() > 200e6)) { const k = C.keys().next().value, o = C.get(k); C.delete(k); o.full = null; o.fullData = null; }
     },
     async fullOf(name, side, d, src) {
       if (d.full) { this.keepFull(d); return d.full; }
@@ -615,12 +614,17 @@
     },
     /* 넘기면 이전 미리 읽기는 멈추고 새로 · 화면에 띄우는 파일이 먼저 */
     async prefetch(names) {
-      const src = this.src, tok = this.pfTok = (this.pfTok || 0) + 1;
-      for (const n of (names || []).slice(0, 10)) {
-        for (let k = 0; k < 200 && this.fg > 0; k++) await sleep(50);
-        if (this.src !== src || this.pfTok !== tok) return;
-        try { await this.info(n, true); } catch (e) { } await sleep(30);
-      }
+      const src = this.src, tok = this.pfTok = (this.pfTok || 0) + 1, list = (names || []).slice(0, 10);
+      let at = 0;
+      const lane = async () => {  // 코어가 많으면 여러 장을 동시에
+        while (at < list.length) {
+          const i = at++, n = list[i];
+          for (let k = 0; k < 200 && this.fg > 0; k++) await sleep(50);
+          if (this.src !== src || this.pfTok !== tok) return;
+          try { await this.info(n, i === 0 ? 'keep' : true); } catch (e) { } await sleep(30);  // 바로 다음 장만 원래 크기까지 (확대·저장 바로 되게)
+        }
+      };
+      await Promise.all(Array.from({ length: (Codec.lanes && Codec.lanes()) || 1 }, lane));
     },
     draft(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, false, ver); },
     draftBeacon(name, edits, status, ver) { if (this.src) this.src.draft(name, edits, status, true, ver); },

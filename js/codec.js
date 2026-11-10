@@ -29,13 +29,14 @@ postMessage({id,tags,w:W,h:H,rgba:rgba.buffer,off:rgba.byteOffset,len:rgba.lengt
 catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
       const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
       const fail = () => { TW = false; for (const [k, c] of twcb) { twcb.delete(k); c(null); } };
-      TW = [0, 1].map(() => { const w = new Worker(url); w.n = 0; w.onmessage = e => { w.n--; const c = twcb.get(e.data.id); if (c) { twcb.delete(e.data.id); c(e.data); } }; w.onerror = fail; return w; });
+      const nw = Math.max(2, Math.min(6, ((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4) - 1));  // 코어 수에 맞춰 작업 스레드
+      TW = Array.from({ length: nw }, () => { const w = new Worker(url); w.n = 0; w.onmessage = e => { w.n--; const c = twcb.get(e.data.id); if (c) { twcb.delete(e.data.id); c(e.data); } }; w.onerror = fail; return w; });
     } catch (e) { TW = false; }
     return TW;
   }
   function tiffInWorker(buf, opt) {
     const ws = tiffWorkers(); if (!ws) return Promise.resolve(null);
-    const w = ws[0].n <= ws[1].n ? ws[0] : ws[1], id = ++twid; w.n++;
+    const w = ws.reduce((a, b) => b.n < a.n ? b : a), id = ++twid; w.n++;
     return new Promise(res => { twcb.set(id, res); try { w.postMessage({ id, buf, opt: opt || null }); } catch (e) { twcb.delete(id); w.n--; res(null); } });
   }
 
@@ -403,6 +404,7 @@ catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
     return encodeTiff(w, h, t.mode, t.px, dpi, ref.format === 'TIFF' ? ref.compression : 'tiff_lzw');
   }
 
-  const Codec = { EXTS, FMT, extOf, decode, toMode, encode, encodeTiff, encodePng, encodeBmp, setJpegDpi, lzw, g4, packbits, tiffMeta, jpegMeta, pngMeta, bmpMeta };
+  const lanes = () => { const w = tiffWorkers(); return w ? Math.max(1, Math.floor(w.length / 2)) : 1; };  // 동시에 미리 풀 수 있는 장 수
+  const Codec = { EXTS, FMT, extOf, decode, lanes, toMode, encode, encodeTiff, encodePng, encodeBmp, setJpegDpi, lzw, g4, packbits, tiffMeta, jpegMeta, pngMeta, bmpMeta };
   if (typeof module === 'object' && module.exports) module.exports = Codec; else root.Codec = Codec;
 })(typeof self !== 'undefined' ? self : globalThis);
