@@ -1582,7 +1582,8 @@ async function go(i){
     if(S.edits.pre&&S.edits.base==='orig'){const p=S.edits.pre;api.post('/api/analyze',{name:f.name,pre:p}).then(fx=>{if(S.cur&&S.cur.name===f.name){S.cur.fix={key:JSON.stringify(p),an:fx.an};renderQC()}}).catch(()=>{})}
     renderHead();renderQC();syncUI();renderPlayer();updateRow(i);updateStats();
     $('#welcome').style.display='none';$('#app').classList.add('loaded');if(!S.origEdit)placeTools();
-    if(!S.origEdit&&S.stick&&S.stick!=='select'&&!HIDE.has(S.stick)&&S.edits&&!S.cur.locked)setTool(S.stick);  /* 한번 고른 도구는 다음 파일에서도 그대로 */
+    {const t=S.stick==null||S.stick==='crop'?'rsel':S.stick;  /* 기본은 사각형 선택 · 한번 고른 도구는 다음 파일에서도 그대로 (크롭은 파일마다 새로 — 사각형 선택으로) */
+     if(!S.origEdit&&t!=='select'&&!HIDE.has(t)&&S.edits&&!S.cur.locked)setTool(t)}
     const pf=+(S.cfg.prefetch??1);if(pf>0){const names=S.files.slice(i+1,i+1+Math.min(pf,30)).map(x=>x.name);if(names.length)api.post('/api/prefetch',{names}).catch(()=>{})}
   }catch(e){if(seq===S.loadSeq){toast(e.message,'err',4000);S.cur=null;vO.setSrc(null);vH.setSrc(null);renderQC()}}
   finally{if(seq===S.loadSeq)setLoading(false)}}
@@ -1615,7 +1616,9 @@ function persist(onlyDirty){
   clearTimeout(S.draftT);
   if(!S.cur)return true;
   if(S.origEdit){toast('원본 수정 중이에요 · [원본 수정 완료] 또는 [취소]를 먼저 눌러 주세요','warn');return false}
-  if(S.tool==='crop'&&S.pending){toast('크롭이 확정되지 않았어요 · R 확정 / Esc 취소','warn');return false}
+  if(S.tool==='crop'&&S.pending){  /* 크롭 중에 다음으로 넘기면: 조절했으면 확정, 그대로면 크롭만 닫고 진행 */
+    const p=S.pending,c=S.edits.crop||{x:0,y:0,w:1,h:1},same=!(p.a||0)&&['x','y','w','h'].every(k=>Math.abs(p[k]-c[k])<1e-4);
+    if(same){S.pending=null;S.cropPan=false;S.tool='select';$('#viewH').className='view t-select';syncUI()}else confirmCrop()}
   const i=S.idx,f=S.files[i];if(!f||f.name!==S.cur.name)return true;
   const changed=dirty(),need=changed||(!onlyDirty&&!REVIEWED.includes(f.status));
   if(!need)return true;
