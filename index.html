@@ -1464,7 +1464,7 @@ function setBrushSize(v){const t=PAINT.has(S.tool)?S.tool:(S.lastPaint||'heal');
 function setRange(el,v){el.value=v;const p=(v-el.min)/(el.max-el.min)*100;el.style.setProperty('--p',clamp(p,0,100)+'%')}
 function syncUI(){try{secTxt()}catch(e){}
   const has=!!S.cur;
-  $$('#segTool button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.tool||(S.cropPan&&S.tool==='crop'&&b.dataset.v==='select')));
+  $$('#segTool button').forEach(b=>b.classList.toggle('on',!!S.cur&&!!(b.dataset.v===S.tool||(S.cropPan&&S.tool==='crop'&&b.dataset.v==='select'))));
 
   $('#swOnLoad').classList.toggle('on',S.cfg.on_load!=='hp');$('#swLabel').classList.toggle('on',S.cfg.label_rot!==false);
   setRange($('#trim'),Math.min(20,S.cfg.trim_px??2));$('#trimN').value=S.cfg.trim_px??2;{const u=S.cfg.trim_unit==='mm'?'mm':'px';$('#trimTxt').textContent=`최대 ${S.cfg.trim_px??2}${u} · 테두리 선·검은 띠·흰 줄만`;$$('#trimUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===u))}
