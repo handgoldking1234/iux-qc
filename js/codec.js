@@ -6,20 +6,23 @@
   const UT = root.UTIF || (typeof require === 'function' ? require('utif') : null);
   /* TIFF 압축 풀기를 뒤쪽 작업 스레드 2개에서 (화면이 멈추지 않고, 원본·보정본을 동시에) · 안 되면 화면 스레드에서 */
   const VENDOR = (() => { try { const s = typeof document !== 'undefined' && document.currentScript && document.currentScript.src; return s ? new URL('../vendor/', s).href : ''; } catch (e) { return ''; } })();
-  let TW = null, twid = 0; const twcb = new Map();
+  const SELF_SRC = (() => { try { return (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || ''; } catch (e) { return ''; } })();
+  let TW = null, twid = 0, EW = null, WURL = ''; const twcb = new Map();
   function tiffWorkers() {
     if (TW !== null) return TW;
     TW = false;
     try {
       if (!VENDOR || typeof Worker !== 'function' || /^file:/.test(VENDOR)) return TW;
-      const src = `importScripts(${JSON.stringify(VENDOR + 'pako.min.js')},${JSON.stringify(VENDOR + 'UTIF.js')});
+      const src = `importScripts(${JSON.stringify(VENDOR + 'pako.min.js')},${JSON.stringify(VENDOR + 'UTIF.js')}${SELF_SRC ? ',' + JSON.stringify(SELF_SRC) : ''});
 function edges(d,W,H){const D=Math.max(1,Math.min(260,Math.floor(Math.min(W,H)/4)));
 const strip=(x0,y0,w,h,hz,rev)=>{const n=hz?h:w,len=hz?w:h,a=new Uint8Array(n*len);for(let k=0;k<n;k++){const q=rev?n-1-k:k;for(let t=0;t<len;t++){const i=(hz?(y0+q)*W+x0+t:(y0+t)*W+x0+q)*4;a[k*len+t]=(d[i]*299+d[i+1]*587+d[i+2]*114)/1000+.5}}return{D:n,len,a}};
 return{t:strip(0,0,W,D,true,false),b:strip(0,H-D,W,D,true,true),l:strip(0,0,D,H,false,false),r:strip(W-D,0,D,H,false,true)}}
 function boxDown(d,W,H,f){const w=Math.floor(W/f),h=Math.floor(H/f),o=new Uint8ClampedArray(w*h*4),inv=1/(f*f),R=new Float32Array(w),G=new Float32Array(w),B=new Float32Array(w);
 for(let y=0;y<h;y++){R.fill(0);G.fill(0);B.fill(0);for(let yy=0;yy<f;yy++){let i=(y*f+yy)*W*4;for(let x=0;x<w;x++){let r=0,g=0,b=0;for(let xx=0;xx<f;xx++,i+=4){r+=d[i];g+=d[i+1];b+=d[i+2]}R[x]+=r;G[x]+=g;B[x]+=b}}
 let j=y*w*4;for(let x=0;x<w;x++,j+=4){o[j]=R[x]*inv;o[j+1]=G[x]*inv;o[j+2]=B[x]*inv;o[j+3]=255}}return{w,h,data:o}}
-onmessage=e=>{const {id,buf,opt}=e.data;try{const ifds=UTIF.decode(buf),ifd=ifds.find(d=>d.t256)||ifds[0];if(!ifd)throw new Error('TIFF 이미지를 읽을 수 없습니다');
+onmessage=e=>{const {id,buf,opt,enc}=e.data;
+if(enc){Codec.encode(enc.rgba,enc.w,enc.h,enc.ref,enc.name).then(b=>postMessage({id,bytes:b.buffer,off:b.byteOffset,len:b.length},[b.buffer]),err=>postMessage({id,err:String(err&&err.message||err)}));return}
+try{const ifds=UTIF.decode(buf),ifd=ifds.find(d=>d.t256)||ifds[0];if(!ifd)throw new Error('TIFF 이미지를 읽을 수 없습니다');
 const tags={};for(const k in ifd)if(k[0]==='t')tags[k]=ifd[k];if(ifd.t259&&ifd.t259[0]===7){postMessage({id,jpeg:true,tags});return}
 UTIF.decodeImage(buf,ifd,ifds);const rgba=UTIF.toRGBA8(ifd),W=ifd.width,H=ifd.height;
 if(opt){const f=Math.max(1,Math.floor(Math.max(W,H)/opt.prevMax)),pv=f>=2?boxDown(rgba,W,H,f):null,ed=edges(rgba,W,H),tr=[];if(pv)tr.push(pv.data.buffer);
@@ -27,7 +30,7 @@ const full=(opt.keep||!pv)?{buf:rgba.buffer,off:rgba.byteOffset,len:rgba.length}
 postMessage({id,tags,w:W,h:H,prev:pv?{w:pv.w,h:pv.h,data:pv.data}:null,edges:ed,full},tr);return}
 postMessage({id,tags,w:W,h:H,rgba:rgba.buffer,off:rgba.byteOffset,len:rgba.length},[rgba.buffer])}
 catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
-      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      const url = WURL = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
       const fail = () => { TW = false; for (const [k, c] of twcb) { twcb.delete(k); c(null); } };
       const nw = Math.max(2, Math.min(6, ((typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4) - 1));  // 코어 수에 맞춰 작업 스레드
       TW = Array.from({ length: nw }, () => { const w = new Worker(url); w.n = 0; w.onmessage = e => { w.n--; const c = twcb.get(e.data.id); if (c) { twcb.delete(e.data.id); c(e.data); } }; w.onerror = fail; return w; });
@@ -169,12 +172,12 @@ catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
 
   /* ---------------------------------------------------------------- 압축: LZW (TIFF 방식, early change) */
   function lzw(src) {
-    const out = []; let acc = 0, nb = 0;
-    const put = (code, width) => { acc = (acc << width) | code; nb += width; while (nb >= 8) { nb -= 8; out.push((acc >>> nb) & 255); } acc &= (1 << nb) - 1; };
+    const out = new Uint8Array(Math.ceil(src.length * 1.6) + 64); let o = 0, acc = 0, nb = 0;  // 최악(바이트당 12비트)에도 넉넉한 크기를 미리 잡음
+    const put = (code, width) => { acc = (acc << width) | code; nb += width; while (nb >= 8) { nb -= 8; out[o++] = (acc >>> nb) & 255; } acc &= (1 << nb) - 1; };
     const child = new Int32Array(4096 * 256), used = new Int32Array(4096); let nused = 0;
     let width = 9, next = 258;
     put(256, width);
-    if (!src.length) { put(257, width); if (nb) out.push((acc << (8 - nb)) & 255); return new Uint8Array(out); }
+    if (!src.length) { put(257, width); if (nb) out[o++] = (acc << (8 - nb)) & 255; return out.slice(0, o); }
     let w = src[0];
     for (let i = 1; i < src.length; i++) {
       const c = src[i], key = (w << 8) | c, hit = child[key];
@@ -192,8 +195,8 @@ catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
     if (next === 4094) { put(256, width); width = 9; }
     else if (next > (1 << width) - 1 && width < 12) width++;
     put(257, width);
-    if (nb) out.push((acc << (8 - nb)) & 255);
-    return new Uint8Array(out);
+    if (nb) out[o++] = (acc << (8 - nb)) & 255;
+    return out.slice(0, o);
   }
 
   /* PackBits (행 단위) */
@@ -404,7 +407,16 @@ catch(err){postMessage({id,err:String(err&&err.message||err)})}}`;
     return encodeTiff(w, h, t.mode, t.px, dpi, ref.format === 'TIFF' ? ref.compression : 'tiff_lzw');
   }
 
+  /* 저장할 때 압축(LZW 등)을 작업 스레드에서 — 화면이 멈추지 않게. 안 되면 null → 화면 스레드에서 */
+  function encodeInWorker(rgba, w, h, ref, name) {
+    if (!tiffWorkers() || !WURL || !SELF_SRC) return Promise.resolve(null);
+    try {
+      if (!EW) { EW = new Worker(WURL); EW.onmessage = e => { const c = twcb.get(e.data.id); if (c) { twcb.delete(e.data.id); c(e.data); } }; EW.onerror = () => { EW = null; for (const [k, c] of twcb) if (c.enc) { twcb.delete(k); c(null); } }; }
+      const id = ++twid, r = { mode: ref.mode, dpi: ref.dpi, format: ref.format, compression: ref.compression };
+      return new Promise(res => { const cb = d => res(!d || d.err ? (d && d.err ? Promise.reject(new Error(d.err)) : null) : new Uint8Array(d.bytes, d.off, d.len)); cb.enc = true; twcb.set(id, cb); EW.postMessage({ id, enc: { rgba, w, h, ref: r, name } }, [rgba.buffer]); });
+    } catch (e) { return Promise.resolve(null); }
+  }
   const lanes = () => { const w = tiffWorkers(); return w ? Math.max(1, Math.floor(w.length / 2)) : 1; };  // 동시에 미리 풀 수 있는 장 수
-  const Codec = { EXTS, FMT, extOf, decode, lanes, toMode, encode, encodeTiff, encodePng, encodeBmp, setJpegDpi, lzw, g4, packbits, tiffMeta, jpegMeta, pngMeta, bmpMeta };
+  const Codec = { EXTS, FMT, extOf, decode, lanes, encodeInWorker, toMode, encode, encodeTiff, encodePng, encodeBmp, setJpegDpi, lzw, g4, packbits, tiffMeta, jpegMeta, pngMeta, bmpMeta };
   if (typeof module === 'object' && module.exports) module.exports = Codec; else root.Codec = Codec;
 })(typeof self !== 'undefined' ? self : globalThis);

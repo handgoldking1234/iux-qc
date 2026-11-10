@@ -565,9 +565,13 @@
       p.then(done, done);
       return p;
     },
-    encodeCanvas(cv, ref, target) {
-      const rgba = cv.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height).data;
-      return Codec.encode(rgba, cv.width, cv.height, ref, target, cv);
+    async encodeCanvas(cv, ref, target) {
+      const grab = () => cv.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height).data;
+      if (Codec.FMT[Codec.extOf(target)] !== 'JPEG' && Codec.encodeInWorker) {  // TIFF·PNG·BMP 압축은 작업 스레드에서 (저장 중에도 화면이 안 멈춤)
+        const b = await Codec.encodeInWorker(grab(), cv.width, cv.height, ref, target);
+        if (b) return b;
+      }
+      return Codec.encode(grab(), cv.width, cv.height, ref, target, cv);
     },
     async save(name, edits, status) {
       status = ['auto', 'edited', 'copied'].includes(status) ? status : 'edited';
