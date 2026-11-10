@@ -303,6 +303,10 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np{display:flex;align-items:center;gap:12px;min-width:0}
 .np-art{width:56px;height:56px;border-radius:4px;background:var(--elev2);display:grid;place-items:center;color:var(--sub);flex:none;overflow:hidden}
 .np-art canvas{width:56px;height:56px;object-fit:cover}
+/* 지금 파일 이름·순번·상태: 두 창 사이 위쪽 가운데 한 줄 (검수하면서 한눈에) */
+.fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:52px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.86);border:1px solid #2c2c2c;backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
+.fchip[hidden]{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px;flex:none}
+.app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:46px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
 .np-txt{min-width:0}
 .np-txt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-txt small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px}
@@ -485,6 +489,7 @@ a.btn{text-decoration:none}
       <button class="icon-btn mbtn" id="mIns" title="보정 패널" data-i="sliders"></button>
     </div>
     <div class="panes" id="panes">
+      <div class="fchip" id="fChip" hidden><b id="npName">파일 없음</b><small id="npSub">—</small></div>
       <section class="pane" id="paneO">
         <div class="pane-head"><button class="icon-btn pane-fold" id="btnFoldO" title="원본 창 접기 · 보정본 크게 (Shift+Tab)" data-i="panel-left" data-s="15"></button><b>원본</b><span class="tag orange" id="oTag" hidden>수정됨</span><span id="hO">—</span><span style="flex:1"></span>
           <button class="btn btn-dark btn-sm" id="btnOEdit" style="height:26px" title="원본이 잘못된 경우 직접 고치기"><span data-i="pencil" data-s="13"></span>원본 수정</button>
@@ -630,10 +635,7 @@ a.btn{text-decoration:none}
 
   <!-- Player -->
   <footer class="player">
-    <div class="np">
-      <div class="np-art" id="npArt" data-i="image" data-s="22"></div>
-      <div class="np-txt"><b id="npName">파일 없음</b><small id="npSub">—</small></div>
-    </div>
+    <div class="np"></div>
     <div class="ctl">
       <div class="ctl-btns">
         <button class="cbtn" id="pPrev" data-tip="이전 ← (수정했으면 자동 저장)" data-i="skip-back"></button>
@@ -1507,10 +1509,10 @@ function renderHead(){const f=S.files[S.idx];
   $('#tSub').textContent=inf?`원본 ${metaTxt(inf.orig&&inf.orig.meta)}   ·   HP ${metaTxt(inf.hp&&inf.hp.meta)}`:'불러오는 중…';
   if(!S.cur)$('#hO').textContent='—'}
 function renderPlayer(){const f=S.files[S.idx],n=S.files.length;
-  $('#npName').textContent=f?f.name:'파일 없음';
+  $('#npName').textContent=f?f.name:'파일 없음';$('#fChip').hidden=!f;
   const st=f?STATUS[f.status||'']:null;$('#npSub').innerHTML=f?`${S.idx+1} / ${n} · <span class="st ${st.c}" style="display:inline-flex;align-items:center;gap:4px">${ic(st.i,12)}${st.t}</span>`:'—';
   const b=$('#pBar');b.max=Math.max(1,n);setRange(b,S.idx+1);$('#pCur').textContent=n?S.idx+1:0;$('#pTot').textContent=n;
-  const art=$('#npArt');if(S.cur&&S.cur.imgH||S.cur&&S.cur.imgO){const im=S.cur.imgH||S.cur.imgO;let c=art.querySelector('canvas');
+  const art=$('#npArt');if(art&&(S.cur&&S.cur.imgH||S.cur&&S.cur.imgO)){const im=S.cur.imgH||S.cur.imgO;let c=art.querySelector('canvas');
     if(!c){art.innerHTML='';c=document.createElement('canvas');c.width=112;c.height=112;art.appendChild(c)}
     const x=c.getContext('2d'),iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,s=Math.max(112/iw,112/ih);x.fillStyle='#fff';x.fillRect(0,0,112,112);
     x.drawImage(im,(112-iw*s)/2,(112-ih*s)/2,iw*s,ih*s)}}
