@@ -431,7 +431,7 @@ a.btn{text-decoration:none}
       <div class="seg srcseg" id="srcSeg"><button data-src="local" class="on"><span data-i="monitor" data-s="14"></span>내 PC 폴더</button><button data-src="cloud"><span data-i="users" data-s="14"></span>팀 작업</button></div>
       <div id="paneLocal">
         <div class="unsupported" id="fsNo" hidden>이 브라우저는 PC 폴더를 직접 열 수 없어요. <b>PC용 Edge 또는 Chrome</b>에서 열어 주세요.</div>
-        <div class="field"><label data-i="folder-open" data-s="14">원본 폴더 (읽기만)</label><div class="inp-wrap dropdir" data-k="orig"><input class="inp" id="dirOrig" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickOrig" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
+        <div class="field"><label data-i="folder-open" data-s="14">원본 폴더</label><div class="inp-wrap dropdir" data-k="orig"><input class="inp" id="dirOrig" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickOrig" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <div class="field"><label data-i="image" data-s="14">보정본 폴더 (HP · 저장할 곳)</label><div class="inp-wrap dropdir" data-k="hp"><input class="inp" id="dirHp" placeholder="경로 입력·붙여넣기 · 또는 오른쪽 버튼" spellcheck="false" autocomplete="off"><button class="pick" id="pickHp" title="폴더 선택" data-i="folder-search" data-s="17"></button></div></div>
         <button class="btn btn-green btn-block" id="btnOpen" data-i="folder-open" data-s="16">불러오기</button>
       <button class="btn btn-dark btn-block" id="btnOpenFile" data-i="image" data-s="15" style="margin-top:6px" title="폴더 없이 이미지 파일 하나만 열어 보정하고 그 파일에 저장 (원본 사본은 따로 보관)">파일 하나만 열어 보정</button>
@@ -1639,7 +1639,7 @@ function persist(onlyDirty){
   const name=S.cur.name,edits=clone(S.edits),write=!isDefault(edits)||baseSide()==='orig',st=isAuto()?'auto':'edited';
   delete S.memo[name];
   if(write){if(st==='edited'&&!isDefault(edits)){S.lastSaved=clone(edits);learnRecord(edits)}setStatus(i,'saving');
-    api.post('/api/save',{name,edits,status:st}).then(r=>{S.files[i].hp=true;setStatus(i,r.status)})
+    api.post('/api/save',{name,edits,status:st}).then(r=>{S.files[i].hp=true;setStatus(i,r.status);if(r.orig_err)toast(`원본 파일은 저장하지 못했어요 · ${name} · ${r.orig_err}`,'warn',6000)})
       .catch(e=>{setStatus(i,'error');toast(`저장 실패 · ${name} · ${e.message}`,'err',6000)})}
   else{setStatus(i,'ok');api.post('/api/status',{name,status:'ok'}).catch(()=>{})}
   return true}
@@ -1728,7 +1728,7 @@ async function exitOrigEdit(apply){if(!S.origEdit)return;
   commit(e=>{e.base='orig';e.pre=empty?null:clone(pre);const ae=fix||empty?autoEdits('orig'):null;
     if(ae)Object.assign(e,ae);else Object.assign(e,{rot:0,tilt:0,crop:null,erases:[],paints:[]})});
   vO.fit();renderRight('reset');renderQC();
-  toast(empty?'원본 수정을 모두 해제했어요':'원본 수정을 보정본에 반영했어요 · 확인 후 다음으로','ok',3000)}
+  toast(empty?'원본 수정을 모두 해제했어요':'원본 수정을 반영했어요 · 다음으로 넘기면 보정본과 원본 파일에 저장돼요 (원본은 되돌릴 수 없어요)','ok',4500)}
 $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(false);$('#btnODone').onclick=()=>exitOrigEdit(true);
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
@@ -1772,7 +1772,7 @@ async function pathOwnedByOther(k,path,h){for(const r of await Engine.IDB.all().
 async function knownPath(k,h){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(r[k]&&await r[k].isSameEntry(h))return(k==='orig'?r.origPath:r.hpPath)||''}catch(e){}}return''}
 async function pickDir(which){
   if(!window.showDirectoryPicker){toast('이 브라우저는 PC 폴더를 열 수 없어요 · PC용 Edge 또는 Chrome을 사용하세요','err',6000);return}
-  try{const h=await showDirectoryPicker({id:'scanqc-'+which,mode:which==='hp'?'readwrite':'read',startIn:L[which]||'documents'});L[which]=h;
+  try{const h=await showDirectoryPicker({id:'scanqc-'+which,mode:'readwrite',startIn:L[which]||'documents'});L[which]=h;
     const cur=unq($(DIRI[which]).value),kn=await knownPath(which,h),clash=cur&&await pathOwnedByOther(which,cur,h);L.path[which]=cur&&lastSeg(cur)===h.name.toLowerCase()&&!clash?cur:kn;$(DIRI[which]).value='';syncDirs();
     if(L.orig&&L.hp)toast('두 폴더가 준비됐어요 · 불러오기를 누르세요')}
   catch(e){if(e.name!=='AbortError')toast('폴더를 열 수 없어요 · '+e.message,'err',5000)}}
@@ -1785,6 +1785,7 @@ async function openLocal(rec){
   if(rec){o=rec.orig;h=rec.hp}
   if(!o||!h){toast('원본 폴더와 보정본 폴더를 모두 정하세요 · 경로 입력 또는 오른쪽 버튼','warn');return}
   if(!(await perm(o,'read'))||!(await perm(h,'readwrite'))){toast('폴더 사용 권한을 허용해야 열 수 있어요','warn',4000);return}
+  await perm(o,'readwrite');  /* 원본 수정을 원본 파일에도 저장하려면 필요 · 거절해도 검수는 가능 (원본은 안 바뀜) */
   if(await o.isSameEntry(h)){toast('원본 폴더와 보정본 폴더가 같으면 원본이 덮어써져요 · 다른 폴더를 고르세요','err',6000);return}
   L.orig=o;L.hp=h;syncDirs();
   if(!rec){for(const r of await Engine.IDB.all().catch(()=>[])){try{if(await r.hp.isSameEntry(h)&&await r.orig.isSameEntry(o)){rec=r;break}}catch(e){}}}

@@ -206,6 +206,7 @@
       const f = this.file(name), d = await this.backupDir(true), src = await f.hpH.getFile();
       const w = await (await d.getFileHandle(bkName(f.hpName), { create: true })).createWritable(); await w.write(src); await w.close();
     }
+    async writeOrig(name, bytes) { const f = this.file(name), w = await f.origH.createWritable(); await w.write(bytes); await w.close(); }
     async writeHP(name, bytes, status, log) {
       const f = this.file(name), target = f.target;
       if (Engine.cfg.backup && f.hpH && !(await this.hasBackup(name))) { try { await this.backup(name); } catch (e) { console.warn('backup', e); } }
@@ -584,13 +585,21 @@
         const d = await this.decoded(name, baseSide, src);
         const ref = f.has('hp') ? (await this.decoded(name, 'hp', src)).meta : d.meta;
         let cv = await this.fullOf(name, baseSide, d, src), meta = d.meta;
-        if (pre) { cv = this.render(cv, meta, pre); meta = Object.assign({}, meta, { w: cv.width, h: cv.height }); }
+        let preCv = null;
+        if (pre) { cv = this.render(cv, meta, pre); meta = Object.assign({}, meta, { w: cv.width, h: cv.height }); if (!this.isDefault(Object.assign({}, pre, { base: 'orig' }))) preCv = cv; }
         cv = resizeCanvas(this.render(cv, meta, edits), edits.resize);
         const bytes = await this.encodeCanvas(cv, ref, f.target);
         await src.writeHP(name, bytes, status, { action: status === 'auto' ? 'save_auto' : 'save', detail: summary(edits) });
+        /* 원본 수정이 있으면 원본 파일에도 저장 (백업 없음 — 사용자가 정함) · 보정본을 먼저 쓴 뒤 */
+        let orig_saved = false, orig_err = '';
+        if (preCv) {
+          if (!src.writeOrig) orig_err = '이 작업 방식에서는 원본을 바꿀 수 없어요';
+          else try { await src.writeOrig(name, await this.encodeCanvas(preCv, d.meta, f.origName)); orig_saved = true; }
+          catch (e) { orig_err = (e && e.name === 'NotAllowedError') ? '원본 폴더에 쓸 권한이 없어요 (폴더를 다시 고르면 권한을 물어봐요)' : String(e && e.message || e); }
+        }
         if (src === this.src) this.forget(name); src.draft(name, null);
         Usage.track('save', name, status, summary(edits));
-        return { status, size: [cv.width, cv.height] };
+        return { status, size: [cv.width, cv.height], orig_saved, orig_err };
       });
     },
     async copy(name, status) {
