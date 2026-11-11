@@ -227,7 +227,11 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .pane-fold{width:26px;height:26px;margin:-4px 0 -4px -4px;flex:none}
 .pane-unfold{display:none;align-items:center;gap:5px;height:26px;padding:0 10px 0 8px;border-radius:13px;background:var(--elev2);color:var(--sub);font-size:12px;font-weight:700;flex:none}
 .pane-unfold:hover{background:#333;color:#fff}
-.panes.solo .pane-unfold{display:inline-flex}
+.panes.solo #btnUnfoldO,.panes.soloH #btnUnfoldH{display:inline-flex}
+/* 보정본 창 접기: 원본을 크게 (원본 수정할 때 편함) */
+.app .panes.soloH{grid-template-columns:minmax(0,1fr) 0 0;column-gap:0}.panes.soloH #paneH{visibility:hidden}.panes.soloH .fchip{left:50%}
+.app.tools-in-ins .panes.soloH{grid-template-columns:minmax(0,1fr) 0}.app.focus .panes.soloH #paneO .pane-head{padding-right:52px}
+@media(max-width:860px){.app .panes.soloH{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 0}}
 .pane{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:#0d0d0d;border-radius:var(--r);overflow:hidden}
 .pane-head{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--sub);border-bottom:1px solid #1d1d1d;white-space:nowrap;overflow:hidden}
 .pane-head b{color:var(--text);font-size:13px}
@@ -495,14 +499,14 @@ a.btn{text-decoration:none}
           <button class="btn btn-dark btn-sm" id="btnOEdit" style="height:26px" title="원본이 잘못된 경우 직접 고치기"><span data-i="pencil" data-s="13"></span>원본 수정</button>
           <button class="btn btn-dark btn-sm orig-only" id="btnOCancel" style="height:26px" title="원본 수정 취소 (Esc)">취소</button>
           <button class="btn btn-green btn-sm orig-only" id="btnODone" style="height:26px" title="원본 수정 완료 (O)"><span data-i="check" data-s="13"></span>원본 수정 완료</button>
-          <span style="flex:1"></span><span class="tag orange" id="oTag" hidden>수정됨</span><span id="hO">—</span><b>원본</b>
+          <span style="flex:1"></span><span class="tag orange" id="oTag" hidden>수정됨</span><span id="hO">—</span><b>원본</b><button class="pane-unfold" id="btnUnfoldH" title="보정본 창 다시 보기">보정본<span data-i="panel-right" data-s="14"></span></button>
 </div>
         <div class="view t-select" id="viewO"></div>
         <div class="zoombar" id="zbO"><button data-z="out" title="축소 (Ctrl −)">−</button><button class="zpct" data-z="menu" title="배율 선택">100%</button><button data-z="in" title="확대 (Ctrl +)">+</button><i></i><button data-z="fit" title="화면 맞춤 (Ctrl+0)">맞춤</button><button data-z="100" title="실제 크기 (Ctrl+1)">100%</button></div>
         <div class="spin"><div class="spinner"></div></div>
       </section>
       <section class="pane" id="paneH">
-        <div class="pane-head"><button class="pane-unfold" id="btnUnfoldO" title="원본 창 다시 보기 (Shift+Tab)"><span data-i="panel-left" data-s="14"></span>원본</button><b>보정본</b><span class="tag" id="baseTag">HP</span><span id="hH">—</span><span style="flex:1"></span><span class="tag red" id="lockTag" hidden></span><span class="tag orange" id="dirtyTag" hidden>변경됨</span></div>
+        <div class="pane-head"><button class="pane-unfold" id="btnUnfoldO" title="원본 창 다시 보기 (Shift+Tab)"><span data-i="panel-left" data-s="14"></span>원본</button><b>보정본</b><span class="tag" id="baseTag">HP</span><span id="hH">—</span><span style="flex:1"></span><span class="tag red" id="lockTag" hidden></span><span class="tag orange" id="dirtyTag" hidden>변경됨</span><button class="icon-btn pane-fold" id="btnFoldH" style="order:99;margin:-4px -4px -4px 0" title="보정본 창 접기 · 원본 크게" data-i="panel-right" data-s="15"></button></div>
         <div class="view t-select" id="viewH"></div>
         <div class="zoombar" id="zbH"><button data-z="out" title="축소 (Ctrl −)">−</button><button class="zpct" data-z="menu" title="배율 선택">100%</button><button data-z="in" title="확대 (Ctrl +)">+</button><i></i><button data-z="fit" title="화면 맞춤 (Ctrl+0)">맞춤</button><button data-z="100" title="실제 크기 (Ctrl+1)">100%</button></div>
         <div class="toolbar" id="segTool">
@@ -1715,7 +1719,7 @@ function enterOrigEdit(){if(!S.cur||S.origEdit)return;if(S.solo)setSolo(false);i
   $('#btnOEdit').hidden=true;$('#oTag').hidden=true;
   stageC.key=null;baseC.key=null;resultC.key=null;renderRight('reset');syncUI();
   toast('원본 수정 중 · 왼쪽 도구로 고친 뒤 [원본 수정 완료]')}
-async function exitOrigEdit(apply){if(!S.origEdit)return;
+async function exitOrigEdit(apply){if(!S.origEdit)return;if(S.soloH)setSoloH(false);
   if(S.tool==='crop'&&S.pending){if(apply)confirmCrop();else cancelCrop()}
   const w=S.edits;S.origEdit=false;S.ev=vH;S.sel=null;S.tool='select';S.pending=null;S.hover=null;S.stampOff=null;
   moveTools('#paneH');document.body.classList.remove('orig-edit');$('#viewO').className='view';$('#viewH').className='view t-select';
@@ -1737,7 +1741,7 @@ function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').sty
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
 function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.title=on?'전체 보기 끝내기 · 패널 다시 보기 (Tab)':'전체 보기 · 패널 숨기기 (Tab)'}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
-function setSolo(on){if(on&&S.origEdit)return;S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
+function setSolo(on){if(on&&S.origEdit)return;if(on&&S.soloH)setSoloH(false);S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
 /* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
 const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
 const saveFold=()=>{try{localStorage.setItem('scanqc:fold',JSON.stringify(FOLD))}catch(e){}};
@@ -1750,6 +1754,8 @@ $('#foldS').onclick=()=>{FOLD.s=!FOLD.s;saveFold();applyFold()};
 for(const id of['secAuto','secRot']){const el=$('#'+id);if(!el)continue;el.querySelector('.sec-h').addEventListener('click',e=>{if(e.target.closest('.sw,input,button,select'))return;FOLD[id]=!FOLD[id];saveFold();applyFold()})}
 applyFold();foldTxt();applyHide();
 $('#btnFoldO').onclick=()=>setSolo(true);$('#btnUnfoldO').onclick=()=>setSolo(false);
+function setSoloH(on){if(on&&S.solo)setSolo(false);S.soloH=on;$('#panes').classList.toggle('soloH',on);requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();if(!on)vH.fit()})}
+$('#btnFoldH').onclick=()=>setSoloH(true);$('#btnUnfoldH').onclick=()=>setSoloH(false);
 try{if(localStorage.getItem('scanqc:solo'))setTimeout(()=>setSolo(true),0)}catch(e){}
 
 /* ======================= 열기: 내 PC 폴더 · 팀 작업 묶음 ======================= */
