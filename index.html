@@ -1303,11 +1303,14 @@ function setTilt(e,t){const o=e.rot+e.tilt;e.tilt=Math.round(clamp(t,-45,45)*100
 function addTilt(d){if(!S.cur)return;if(S.tool==='crop'&&S.pending){S.pending={...S.pending,a:Math.round(((S.pending.a||0)-d)*100)/100};S.ev.render();return}commit(e=>setTilt(e,e.tilt+d))}
 function setTool(t){if(!S.cur&&t!=='select')return;if(HIDE.has(t)){toast('설정에서 숨긴 기능이에요','warn',1600);return}
   /* 크롭 중 손바닥: 크롭은 그대로 두고 화면만 끌어서 이동 · 크롭 버튼(C)으로 다시 조절 */
-  if(S.tool==='crop'&&S.pending){if(t==='select'){if(!S.cropPan){S.cropPan=true;$('#viewH').className='view t-select';syncUI();toast('크롭은 그대로 · 끌어서 화면 이동 · C 로 다시 조절','ok',1800)}return}
-    if(t==='crop'){if(S.cropPan){S.cropPan=false;$('#viewH').className='view t-crop';syncUI()}return}}
+  if(S.tool==='crop'&&S.pending){if(t==='select'){if(!S.cropPan){S.cropPan=true;$(S.origEdit?'#viewO':'#viewH').className='view t-select';syncUI();toast('크롭은 그대로 · 끌어서 화면 이동 · C 로 다시 조절','ok',1800)}return}
+    if(t==='crop'){if(S.cropPan){S.cropPan=false;$(S.origEdit?'#viewO':'#viewH').className='view t-crop';syncUI()}return}}
   S.cropPan=false;if(!S.origEdit)S.stick=t;if(t===S.tool&&t!=='select')return;S.poly=null;
   if(t==='crop'){S.pending=S.edits.crop?clone(S.edits.crop):{x:0,y:0,w:1,h:1}}else S.pending=null;
-  S.tool=t;S.hover=null;$('#viewH').className='view t-'+t;if(!S.origEdit)$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select');renderRight();syncUI()}
+  S.tool=t;S.hover=null;
+  if(S.origEdit){$('#viewO').className='view t-'+t;$('#viewH').className='view'}  /* 원본 수정 중엔 왼쪽 창이 작업 창 — 커서도 도구에 맞게 */
+  else{$('#viewH').className='view t-'+t;$('#viewO').className='view '+(t==='zoom'?'t-zoom':'t-select')}
+  renderRight();syncUI()}
 function confirmCrop(){if(S.tool!=='crop'||!S.pending)return;const p=S.pending,a=p.a||0;S.cropPan=false;
   S.pending=null;S.tool='select';$('#viewH').className='view t-select';
   if(Math.abs(a)<1e-6){const full=p.x<=0.0005&&p.y<=0.0005&&p.w>=.999&&p.h>=.999;commit(e=>{e.crop=full?null:{x:p.x,y:p.y,w:p.w,h:p.h}},false);return}
