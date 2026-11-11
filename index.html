@@ -305,7 +305,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np-art canvas{width:56px;height:56px;object-fit:cover}
 /* 지금 파일 이름·순번·상태: 두 창 사이 위쪽 가운데 한 줄 (검수하면서 한눈에) */
 .fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:66px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.8);backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
-.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:var(--sub);font-size:12px;flex:none}
+.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:#d6d6d6;font-size:12.5px;font-weight:700;flex:none}#hO,#hH{font-weight:700;color:#d6d6d6}
 .app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:52px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
 .np-txt{min-width:0}
 .np-txt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1636,10 +1636,12 @@ function persist(onlyDirty){
       .catch(e=>{setStatus(i,'error');toast(`저장 실패 · ${name} · ${e.message}`,'err',6000)})}
   else{setStatus(i,'ok');api.post('/api/status',{name,status:'ok'}).catch(()=>{})}
   return true}
-function saveNext(){if(!S.cur||$('#paneH').classList.contains('loading'))return;const i=S.idx;if(persist(false))nextFrom(i)}
+/* 원본 수정 중에 넘기면: [원본 수정 완료]를 누른 것으로 보고 반영한 뒤 이어서 진행 */
+function leaveOrig(then){if(!S.origEdit)return false;exitOrigEdit(true).then(then);return true}
+function saveNext(){if(!S.cur||$('#paneH').classList.contains('loading'))return;if(leaveOrig(saveNext))return;const i=S.idx;if(persist(false))nextFrom(i)}
 function skip(){saveNext()}
-function prev(){if(S.idx<=0)return;if(persist(true))go(S.idx-1)}
-function jumpTo(i){if(i===S.idx)return;if(persist(true))go(i)}
+function prev(){if(S.idx<=0)return;if(leaveOrig(prev))return;if(persist(true))go(S.idx-1)}
+function jumpTo(i){if(i===S.idx)return;if(leaveOrig(()=>jumpTo(i)))return;if(persist(true))go(i)}
 async function copyOriginal(){if(!S.cur||S.origEdit)return;if(!S.cur.info.orig){toast('원본 파일이 없습니다','warn');return}
   // Q: 언제나 손대지 않은 원본 그대로 (원본 수정·자동 보정·임시 저장 모두 버림)
   const i=S.idx,name=S.cur.name;delete S.memo[name];clearTimeout(S.draftT);setStatus(i,'saving');
