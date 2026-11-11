@@ -571,7 +571,7 @@ a.btn{text-decoration:none}
           <div class="hint" style="margin:0 0 8px">핸들로 조절 · 바깥쪽 드래그는 회전 · Space 누른 채 끌면 화면 이동 · R 확정</div>
           <button class="btn btn-dark btn-sm btn-block" id="cClear" data-i="x" data-s="13">크롭 해제</button></div>
         <div class="opt" data-for="sel"><div class="opt-title"><span data-i="square-dashed" data-s="14"></span><b>선택</b><span style="flex:1"></span><span id="selTxt">없음</span></div>
-          <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하거나 Shift+방향키(Ctrl 같이 누르면 ×10)로 이동 · 화면 이동은 오른쪽 버튼·휠 버튼 드래그<br>올가미: 클릭으로 꼭짓점, 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
+          <div class="hint" style="margin:0 0 8px">드래그로 선택 · Shift 정사각형/정원 · 선택 안을 드래그하거나 Shift+방향키(Ctrl 같이 누르면 ×10)로 이동 · 화면 이동은 오른쪽 버튼·휠 버튼 드래그<br>올가미: 클릭으로 꼭짓점(Shift 누르면 0·45·90° 직선), 드래그로 자유 곡선 · 첫 점·더블클릭·Enter 로 닫기<br>선택 후 브러시·힐링·도장·색 보정은 <b style="color:#fff">선택 영역에만</b> 적용</div>
           <div class="grid3"><button class="btn btn-dark btn-sm" id="selClear" title="Ctrl+D">해제</button><button class="btn btn-dark btn-sm" id="selInv">반전</button><button class="btn btn-dark btn-sm" id="selFill" title="Delete">흰색 채우기</button></div>
           <div class="toggle" id="tSelFill" title="영역을 고르자마자 흰색으로 채우고 선택은 풀어요"><span>선택하면 바로 흰색 채우기</span><span class="sw" id="swSelFill"></span></div></div>
         <div class="opt" data-for="bucket"><div class="opt-title"><span data-i="paint-bucket" data-s="14"></span><b>페인트통</b></div>
@@ -590,6 +590,7 @@ a.btn{text-decoration:none}
             <span class="swatch" data-c="#c8102e" style="background:#c8102e"></span><span class="swatch" data-c="#1d4ed8" style="background:#1d4ed8"></span>
             <input type="color" id="bColor" title="직접 선택"></div>
           <div class="hint" id="bHint">[ ] 키로 크기 조절</div>
+          <div class="hint">Shift 누른 채 끌기: 가로·세로 직선 · Shift+클릭: 방금 끝점에서 여기까지 직선</div>
           <div class="grid2 mt8"><button class="btn btn-dark btn-sm" id="pUndo">마지막 획 취소</button><button class="btn btn-dark btn-sm" id="pClear">획 모두 삭제</button></div></div>
       </div>
 
@@ -1186,7 +1187,7 @@ function bindViewer(v,isH){
       const p={t:'bucket',pts:[[+(px/st.width).toFixed(5),+(py/st.height).toFixed(5)]],c:b.c,tol:b.tol};if(S.sel)p.sel=clone(S.sel);
       commit(e=>{e.paints=e.paints||[];e.paints.push(p)},true);return}
     else if(tool==='lasso'&&S.poly){const[px,py]=srcToStage(sx0,sy0),f=S.poly.pts[0],[fx,fy]=stageToScr(v,f[0],f[1]);
-      if(S.poly.pts.length>=3&&Math.hypot(x-fx,y-fy)<9){closePoly(S.poly.pts);return}S.poly.pts.push([px,py]);v.render();return}
+      if(S.poly.pts.length>=3&&Math.hypot(x-fx,y-fy)<9){closePoly(S.poly.pts);return}S.poly.pts.push(e.shiftKey?snap45(S.poly.pts[S.poly.pts.length-1],[px,py]):[px,py]);v.render();return}
     else if(SELT.has(tool)){const[px,py]=srcToStage(sx0,sy0),st=stageC.cv;
       if(S.sel&&!S.sel.inv&&inSel(S.sel,px/st.width,py/st.height))drag={type:'selmove',p0:[px,py],s0:clone(S.sel)};
       else if(tool==='lasso')drag={type:'lasso',x0:x,y0:y,pts:[[px,py]],free:false};
@@ -1195,7 +1196,9 @@ function bindViewer(v,isH){
       if(tool==='stamp'&&e.altKey){S.stampSrc=[px,py];S.stampOff=null;toast('복제 원본 지점을 정했어요 · 이제 칠하세요');v.render();return}
       if(tool==='stamp'&&!S.stampSrc){toast('도장: Alt+클릭으로 복제할 원본 지점을 먼저 찍으세요','warn');return}
       if(tool==='stamp'&&!S.stampOff)S.stampOff=[S.stampSrc[0]-px,S.stampSrc[1]-py];
-      drag={type:'paint',pts:[[px,py]]};S.hover=null;v.render()}
+      /* 포토샵처럼: Shift+클릭 = 방금 칠한 끝점에서 여기까지 직선 · Shift 누른 채 끌기 = 가로/세로 직선 */
+      const st0=stageC.cv,lp=e.shiftKey&&S.lastPt&&st0?[S.lastPt[0]*st0.width,S.lastPt[1]*st0.height]:null;
+      drag=lp?{type:'paint',pts:[lp,[px,py]],anc:1}:{type:'paint',pts:[[px,py]],anc:0};S.hover=null;v.render()}
     else if(tool==='crop'){const h=hitCrop(x,y);const[sx,sy]=[sx0,sy0];
       S.cropEdge=h&&h!=='new'?h:null;drag=h?{type:'crop',h,sx,sy,r0:clone(S.pending)}:{type:'crop',h:'new',sx,sy}}
     else if(tool==='erase'){const[sx,sy]=v.toSrc(x,y);drag={type:'erase',sx,sy,ex:sx,ey:sy}}
@@ -1204,7 +1207,7 @@ function bindViewer(v,isH){
     if(!drag){
       if(v===S.ev&&S.tool==='crop'){const h=hitCrop(x,y);if(S.cropPan)cv.style.cursor=h&&h!=='move'?CURSOR[h]:'';else cv.style.cursor=h?CURSOR[h]:rotCursor(v,x,y)}
       else if(v===S.ev&&S.tool==='rotate'&&v.src)cv.style.cursor=rotCursor(v,x,y);else cv.style.cursor='';
-      if(v===S.ev&&S.poly&&v.src){const[sx,sy]=v.toSrc(x,y);S.poly.hv=srcToStage(sx,sy);v.render()}
+      if(v===S.ev&&S.poly&&v.src){const[sx,sy]=v.toSrc(x,y),q=srcToStage(sx,sy);S.poly.hv=e.shiftKey?snap45(S.poly.pts[S.poly.pts.length-1],q):q;v.render()}
       if(v===S.ev&&PAINT.has(S.tool)&&v.src){const[sx,sy]=v.toSrc(x,y);S.hover={v,x,y,st:srcToStage(sx,sy)};v.render()}
       updateMag(e,v);return}
     if(drag.type==='rotate'){cv.style.cursor=rotCursor(v,x,y);let d=(Math.atan2(y-drag.cy,x-drag.cx)-drag.a0)*180/Math.PI;d=e.shiftKey?Math.round(d):Math.round(d*10)/10;
@@ -1222,6 +1225,10 @@ function bindViewer(v,isH){
       if(!drag.free&&Math.hypot(x-drag.x0,y-drag.y0)>4)drag.free=true;
       if(drag.free&&Math.hypot(p[0]-l[0],p[1]-l[1])*v.scale>=1.5)drag.pts.push(p);v.render();return}
     if(drag.type==='paint'){const[sx,sy]=v.toSrc(x,y),p=srcToStage(sx,sy),l=drag.pts[drag.pts.length-1],r=brushR();
+      if(e.shiftKey){const a=drag.pts[drag.anc],dx=p[0]-a[0],dy=p[1]-a[1];  /* 시작점에서 가로 또는 세로로만 (먼저 더 많이 움직인 쪽) */
+        if(!drag.axis&&Math.hypot(dx,dy)*v.scale>=6)drag.axis=Math.abs(dx)>=Math.abs(dy)?'h':'v';
+        if(drag.axis){drag.pts.length=drag.anc+1;drag.pts.push(drag.axis==='h'?[p[0],a[1]]:[a[0],p[1]])}v.render();return}
+      if(drag.axis){drag.axis=null;drag.anc=drag.pts.length-1}  /* Shift 를 떼면 거기서부터 자유롭게 */
       if(Math.hypot(p[0]-l[0],p[1]-l[1])>=Math.max(.5,r*.2))drag.pts.push(p);v.render();return}
     if(drag.type==='zoom'){const dx=x-drag.x0;if(Math.abs(dx)>3)drag.moved=true;if(drag.moved)v.setPct(drag.p0*Math.pow(2,dx/120),drag.ax,drag.ay);return}
     if(drag.type==='pan'){v.px=drag.px+(x-drag.x0);v.py=drag.py+(y-drag.y0);v.render();return}
@@ -1244,7 +1251,7 @@ function bindViewer(v,isH){
     if(d.type==='sel'){const dr=d.draft,st=stageC.cv;S.sel=(dr&&dr.w*st.width>3&&dr.h*st.height>3)?dr:null;v.render();syncUI();autoFillSel();return}
     if(d.type==='selmove'){v.render();syncUI();return}
     if(d.type==='lasso'){if(d.free)closePoly(d.pts);else{S.poly={pts:d.pts};S.sel=null;v.render();syncUI()}return}
-    if(d.type==='paint'){const st=stageC.cv,k=stageK(),t=S.tool,b=S.brush;
+    if(d.type==='paint'){const st=stageC.cv,k=stageK(),t=S.tool,b=S.brush;{const q=d.pts[d.pts.length-1];S.lastPt=[q[0]/st.width,q[1]/st.height]}
       const p={t,sz:Math.round(b.size[t]*10)/10,pts:d.pts.map(q=>[+(q[0]/st.width).toFixed(5),+(q[1]/st.height).toFixed(5)])};
       if(t==='brush'||t==='pen'){p.c=b.color;p.op=t==='pen'?100:b.op;p.hd=t==='pen'?100:b.hd}
       if(t==='erase')p.hd=b.hd;
@@ -1561,7 +1568,7 @@ async function go(i){
   if(S.origEdit)exitOrigEdit(false);
   clearTimeout(S.draftT);
   // 새 파일은 처음 상태로: 도구·선택·도장 원점·크롭 대기·곡선/색 균형 탭·되돌리기 기록
-  S.tool='select';S.cropPan=false;S.pending=null;S.sel=null;S.poly=null;S.stampSrc=null;S.stampOff=null;S.hover=null;S.cvCh='rgb';S.cbRange='m';S.hist=[];S.fut=[];
+  S.tool='select';S.cropPan=false;S.lastPt=null;S.pending=null;S.sel=null;S.poly=null;S.stampSrc=null;S.stampOff=null;S.hover=null;S.cvCh='rgb';S.cbRange='m';S.hist=[];S.fut=[];
   const seq=++S.loadSeq,prev=S.idx;S.idx=i;const f=S.files[i];
   S.tool='select';S.pending=null;$('#viewH').className='view t-select';hideMag();
   updateRow(prev);updateRow(i);scrollCur();renderPlayer();setLoading(true);
@@ -1659,6 +1666,8 @@ function polySel(fp,inv){const xs=fp.map(q=>q[0]),ys=fp.map(q=>q[1]),x=Math.min(
 /* 선택 도구 + 선택 영역이 있을 때 Shift+방향키로 1px(Ctrl 같이 10px)씩 옮기기 */
 function selNudge(code,n){const st=stageC.cv,dx=code==='ArrowLeft'?-n:code==='ArrowRight'?n:0,dy=code==='ArrowUp'?-n:code==='ArrowDown'?n:0;S.sel=moveSel(S.sel,dx/st.width,dy/st.height);S.ev.render();syncUI()}
 function moveSel(s,dx,dy){const n={...s,x:s.x+dx,y:s.y+dy};if(s.pts)n.pts=s.pts.map(q=>[q[0]+dx,q[1]+dy]);return n}
+/* 올가미 꼭짓점: Shift 를 누르면 앞 점에서 0·45·90° 방향 직선으로 */
+function snap45(a,p){const dx=p[0]-a[0],dy=p[1]-a[1],d=Math.hypot(dx,dy),t=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*(Math.PI/4);return[a[0]+Math.cos(t)*d,a[1]+Math.sin(t)*d]}
 function closePoly(pts){const st=stageC.cv;S.poly=null;if(!st||!pts||pts.length<3){S.ev.render();syncUI();return}
   const n=polySel(pts.map(q=>[q[0]/st.width,q[1]/st.height]));S.sel=(n.w*st.width>3&&n.h*st.height>3)?n:null;S.ev.render();syncUI();autoFillSel()}
 /* 페인트통: 시작점과 색 차이가 허용치 이하인 점 중 이어진 곳만 (4방향) */
