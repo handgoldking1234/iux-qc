@@ -1499,7 +1499,7 @@ function syncUI(){try{secTxt()}catch(e){}
   $('#oMetaTxt').textContent=inf.orig?`${inf.orig.meta.w}×${inf.orig.meta.h}`:'없음';
   $('#btnRestore').disabled=!inf.backup;
   $('#dirtyTag').hidden=!dirty();
-  $('#hH').textContent=inf[bs]?`${inf[bs].meta.w}×${inf[bs].meta.h} → ${o.w}×${o.h}`:'';
+  $('#hH').textContent=inf[bs]?`${inf[bs].meta.w}×${inf[bs].meta.h}`+((o.w!==inf[bs].meta.w||o.h!==inf[bs].meta.h)?` → ${o.w}×${o.h}`:''):'';  /* 크기가 바뀌는 수정(크롭·회전·크기)이 있을 때만 결과 크기 표시 */
   $('#btnUndo').disabled=!S.hist.length;$('#btnRedo').disabled=!S.fut.length;
 }
 function renderQC(){const box=$('#qc');if(!S.cur){box.innerHTML='';return}const q=qcList();
