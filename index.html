@@ -239,6 +239,7 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .pane-head b{color:var(--text);font-size:13px}
 .tag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:var(--pill);font-size:11px;font-weight:700;background:var(--elev2);color:var(--sub)}
 .tag.green{background:var(--accentDim);color:var(--accentText)}
+.hchg{color:#FFD43B}  /* 바뀐 크기: 노랑 */
 .tag.orange{background:rgba(255,164,43,.14);color:var(--orange)}
 .tag.blue{background:rgba(34,184,207,.16);color:var(--info)}
 .view{position:relative;flex:1;min-height:0}
@@ -1520,7 +1521,7 @@ function syncUI(){try{secTxt()}catch(e){}
   if(!has)return;
   const e=S.edits,bs=baseSide();
   $$('#segBase button').forEach(b=>{b.classList.toggle('on',b.dataset.v===bs);if(b.dataset.v==='hp')b.disabled=!hasHP()});
-  const au=isAuto();$('#baseTag').textContent=au?'자동 보정':(bs==='hp'?'보정본 파일':'원본 기준');$('#baseTag').className='tag '+(au?'blue':'green');  /* 보정본 파일·원본 기준 = 주색, 자동 보정 = 청록 */
+  const au=isAuto();$('#baseTag').textContent=au?'자동 보정':(bs==='hp'?'보정본 파일':'원본 기준');$('#baseTag').className='tag '+(au?'green':'blue');  /* 보정본 파일·원본 기준 = 민트, 자동 보정 = 주색 */
   $$('#rotBtns .tbtn').forEach(b=>b.classList.toggle('on',+b.dataset.r===e.rot));
   setRange($('#tilt'),clamp(e.tilt,-5,5));$('#tiltN').value=e.tilt;
   $('#rotInfo').textContent=`${e.rot}° ${e.tilt>=0?'+':''}${e.tilt.toFixed(2)}°`;
@@ -1546,7 +1547,7 @@ function syncUI(){try{secTxt()}catch(e){}
   $('#oMetaTxt').textContent=inf.orig?`${inf.orig.meta.w}×${inf.orig.meta.h}`:'없음';
   $('#btnRestore').disabled=!inf.backup;
   $('#dirtyTag').hidden=!dirty();
-  $('#hH').textContent=inf[bs]?`${inf[bs].meta.w}×${inf[bs].meta.h}`+((o.w!==inf[bs].meta.w||o.h!==inf[bs].meta.h)?` → ${o.w}×${o.h}`:''):'';  /* 크기가 바뀌는 수정(크롭·회전·크기)이 있을 때만 결과 크기 표시 */
+  $('#hH').innerHTML=inf[bs]?`${inf[bs].meta.w}×${inf[bs].meta.h}`+((o.w!==inf[bs].meta.w||o.h!==inf[bs].meta.h)?` → <span class="hchg">${o.w}×${o.h}</span>`:''):'';  /* 크기가 바뀌는 수정(크롭·회전·크기)이 있을 때만 결과 크기 표시 */
   $('#btnUndo').disabled=!S.hist.length;$('#btnRedo').disabled=!S.fut.length;
 }
 function renderQC(){const box=$('#qc');if(!S.cur){box.innerHTML='';return}const q=qcList();
