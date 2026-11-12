@@ -250,7 +250,7 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .pane.loading .spin{display:grid}
 .spinner{width:36px;height:36px;border-radius:50%;border:3px solid #333;border-top-color:var(--accent);animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-.cedges{display:flex;gap:6px;font-size:12px;color:#555}.cedges label{display:flex;align-items:center;gap:3px}.cedges input{width:56px;height:26px;border:1px solid #ccc!important;border-radius:6px;padding:0 4px;font:inherit;color:#000!important;background:#fff!important;text-align:right}
+.cedges{display:flex;gap:6px;font-size:12px;color:#555}.cedges.cstep{padding-left:8px;border-left:1px solid #ddd}.cedges.cstep input{width:48px}.cedges label{display:flex;align-items:center;gap:3px}.cedges input{width:56px;height:26px;border:1px solid #ccc!important;border-radius:6px;padding:0 4px;font:inherit;color:#000!important;background:#fff!important;text-align:right}
 .qc-crop{display:none;justify-content:center;align-items:center;min-height:56px;padding:8px 16px}
 .stage.cropping .qc{display:none}.stage.cropping .qc-crop{display:flex}.qc-crop .cropbar{position:static;transform:none;box-shadow:none}
 .cropbar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:#fff;color:#000;border-radius:var(--pill);padding:6px 6px 6px 16px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:3;white-space:nowrap}
@@ -529,7 +529,7 @@ a.btn{text-decoration:none}
           <button data-v="pen" data-tip="펜" data-k="P" data-i="pen-line"></button>
           <button data-v="bucket" data-tip="페인트통 (클릭한 곳과 비슷한 색 영역을 채움)" data-k="G" data-i="paint-bucket"></button>
         </div>
-        <div class="cropbar" id="cropbar"><span id="cropInfo">—</span><span class="cedges" title="각 변에서 잘라낼 폭(px) · 변을 클릭한 뒤 방향키로 1px (Shift 10px)"><label>좌<input id="cL" type="number" min="0"></label><label>상<input id="cT" type="number" min="0"></label><label>우<input id="cR" type="number" min="0"></label><label>하<input id="cB" type="number" min="0"></label></span><button class="btn btn-dark btn-sm" id="cropCancel">취소 Esc</button><button class="btn btn-green btn-sm" id="cropOk" data-i="check" data-s="14">확정 R</button></div>
+        <div class="cropbar" id="cropbar"><span id="cropInfo">—</span><span class="cedges" title="각 변에서 잘라낼 폭(px) · 변을 클릭한 뒤 방향키로 1px (Shift 10px)"><label>좌<input id="cL" type="number" min="0"></label><label>상<input id="cT" type="number" min="0"></label><label>우<input id="cR" type="number" min="0"></label><label>하<input id="cB" type="number" min="0"></label></span><span class="cedges cstep" title="모서리·변을 클릭할 때마다 이만큼씩 안쪽으로 잘라요 (모서리는 양쪽 변 모두)"><label>클릭당<input id="cStep" type="number" min="1" max="500" step="1">px</label></span><button class="btn btn-dark btn-sm" id="cropCancel">취소 Esc</button><button class="btn btn-green btn-sm" id="cropOk" data-i="check" data-s="14">확정 R</button></div>
         <div class="spin"><div class="spinner"></div></div>
       </section>
       <div class="welcome" id="welcome">
@@ -1208,7 +1208,7 @@ function bindViewer(v,isH){
       const st0=stageC.cv,lp=e.shiftKey&&S.lastPt&&st0?[S.lastPt[0]*st0.width,S.lastPt[1]*st0.height]:null;
       drag=lp?{type:'paint',pts:[lp,[px,py]],anc:1}:{type:'paint',pts:[[px,py]],anc:0};S.hover=null;v.render()}
     else if(tool==='crop'){const h=hitCrop(x,y);const[sx,sy]=[sx0,sy0];
-      S.cropEdge=h&&h!=='new'?h:null;drag=h?{type:'crop',h,sx,sy,r0:clone(S.pending)}:{type:'crop',h:'new',sx,sy}}
+      S.cropEdge=h&&h!=='new'?h:null;drag=h?{type:'crop',h,sx,sy,r0:clone(S.pending),vx:x,vy:y,moved:false}:{type:'crop',h:'new',sx,sy}}
     else if(tool==='erase'){const[sx,sy]=v.toSrc(x,y);drag={type:'erase',sx,sy,ex:sx,ey:sy}}
     S.dragging=true});
   cv.addEventListener('pointermove',e=>{const[x,y]=pos(e);
@@ -1242,6 +1242,7 @@ function bindViewer(v,isH){
     if(drag.type==='pan'){v.px=drag.px+(x-drag.x0);v.py=drag.py+(y-drag.y0);v.render();return}
     const[sx,sy]=v.toSrc(x,y),W=v.src.width,H=v.src.height;
     if(drag.type==='crop'){
+      if(drag.h!=='new'&&!drag.moved){if(Math.hypot(x-drag.vx,y-drag.vy)<4)return;drag.moved=true}  /* 살짝 떨린 건 끌기가 아니라 클릭으로 */
       if(drag.h==='new'){const x0=clamp(Math.min(drag.sx,sx),0,W),x1=clamp(Math.max(drag.sx,sx),0,W),y0=clamp(Math.min(drag.sy,sy),0,H),y1=clamp(Math.max(drag.sy,sy),0,H);
         S.pending={x:x0/W,y:y0/H,w:(x1-x0)/W,h:(y1-y0)/H}}
       else{const g=cropGeo(drag.r0,v.src),t=rad(g.a),cs=Math.cos(t),sn=Math.sin(t),DX=sx-drag.sx,DY=sy-drag.sy;
@@ -1267,6 +1268,7 @@ function bindViewer(v,isH){
       if(S.sel)p.sel=clone(S.sel);
       commit(e=>{e.paints=e.paints||[];e.paints.push(p)},true);return}
     if(d.type==='crop'&&S.pending&&(S.pending.w<.005||S.pending.h<.005))S.pending=d.r0||{x:0,y:0,w:1,h:1};
+    if(d.type==='crop'&&d.h&&d.h!=='new'&&d.h!=='move'&&!d.moved){cropStepIn(d.h);return}  /* 모서리·변을 클릭만 하면 정한 px 씩 안쪽으로 */
     if(d.type==='erase'){const st=stageC.cv,cr=S.tool!=='crop'&&S.edits.crop;let x0=Math.min(d.sx,d.ex),y0=Math.min(d.sy,d.ey),x1=Math.max(d.sx,d.ex),y1=Math.max(d.sy,d.ey);
       if(x1-x0>2&&y1-y0>2){if(cr){x0+=cr.x*st.width;x1+=cr.x*st.width;y0+=cr.y*st.height;y1+=cr.y*st.height}
         commit(e=>e.erases.push({x:x0/st.width,y:y0/st.height,w:(x1-x0)/st.width,h:(y1-y0)/st.height}),true);return}}
@@ -1330,6 +1332,10 @@ function cancelCrop(){S.pending=null;S.cropPan=false;setTool('select')}
 function updateCropBar(){const show=S.tool==='crop'&&S.pending,cb=$('#cropbar');if(cb.parentNode.id!=='qcCrop')$('#qcCrop').appendChild(cb);cb.classList.toggle('show',!!show);document.querySelector('.stage').classList.toggle('cropping',!!show);
   if(show){const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt),P=S.pending;$('#cropInfo').textContent=`${Math.round(P.w*rw)} × ${Math.round(P.h*rh)} px`;
     const v={cL:P.x*rw,cT:P.y*rh,cR:(1-P.x-P.w)*rw,cB:(1-P.y-P.h)*rh};for(const k in v){const i=$('#'+k);if(document.activeElement!==i)i.value=Math.round(v[k])}}}
+/* 크롭 모서리·변 클릭: 그 변(모서리는 양쪽 변)을 정한 px 만큼 안쪽으로 · 클릭할수록 더 줄어듦 */
+let CSTEP=(()=>{try{return Math.max(1,+localStorage.getItem('scanqc:cstep')||5)}catch(e){return 5}})();
+function cropStepIn(h){const P=S.pending;if(!P||!h)return;const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt),n=CSTEP,o={};
+  if(h.includes('w'))o.l=P.x*rw+n;if(h.includes('e'))o.r=(1-P.x-P.w)*rw+n;if(h.includes('n'))o.t=P.y*rh+n;if(h.includes('s'))o.b=(1-P.y-P.h)*rh+n;cropSetEdges(o)}
 /* 크롭 변 숫자로 조절 · 마지막으로 잡은 변을 방향키로 미세 조절 */
 function cropSetEdges(o){const P=S.pending;if(!P)return;const m=baseMeta(),[rw,rh]=rotDims(m.w,m.h,S.edits.rot+S.edits.tilt);
   let l=P.x*rw,t=P.y*rh,r=(1-P.x-P.w)*rw,b=(1-P.y-P.h)*rh;if('l'in o)l=o.l;if('t'in o)t=o.t;if('r'in o)r=o.r;if('b'in o)b=o.b;
@@ -1988,7 +1994,8 @@ $('#segSize').onclick=e=>{const b=e.target.closest('button');if(!b||!S.cur)retur
   commit(ed=>{ed.resize.mode=m;if(m==='percent')ed.resize.value=100;if(m==='long'){const o=outDims();ed.resize.value=Math.max(o.cw,o.ch)}})};
 
 $('#cClear').onclick=()=>{if(S.cur&&S.edits.crop)commit(e=>e.crop=null,false)};
-$('#cropOk').onclick=confirmCrop;$('#cropCancel').onclick=cancelCrop;
+$('#cropOk').onclick=confirmCrop;$('#cStep').value=CSTEP;$('#cStep').oninput=e=>{const v=Math.round(+e.target.value);if(v>=1){CSTEP=Math.min(500,v);try{localStorage.setItem('scanqc:cstep',CSTEP)}catch(_){}}};$('#cStep').onchange=e=>{e.target.value=CSTEP};
+$('#cropCancel').onclick=cancelCrop;
 
 $('#bSize').oninput=e=>setBrushSize(+e.target.value);$('#bSizeN').onchange=e=>setBrushSize(+e.target.value);
 $('#bOp').oninput=e=>{S.brush.op=+e.target.value;syncBrush()};$('#bOpN').onchange=e=>{S.brush.op=clamp(+e.target.value,5,100);syncBrush()};
