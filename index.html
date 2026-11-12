@@ -188,7 +188,7 @@ details.sec[open] .chev{transform:rotate(90deg)}
 .help-btn:hover{background:#333;color:#fff}
 .ins-closed .help-btn,.ins-closed .ins-head>span{display:none}
 .howto{background:rgba(255,255,255,.05);border-radius:10px;padding:12px 16px;margin-bottom:12px}
-.howto h4{margin:0 0 8px}.howto ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:var(--sub)}
+.howto h4{margin:0 0 8px}.howto h4~h4{margin-top:14px}.howto ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:var(--sub)}
 .keys kbd,.howto kbd{white-space:nowrap}.howto b{color:#fff}.howto kbd{font-size:11px}
 .zmenu{position:fixed;z-index:80;display:none;background:var(--elev2);border-radius:8px;padding:4px;box-shadow:0 12px 32px rgba(0,0,0,.6);min-width:96px}
 .zmenu button{display:block;width:100%;text-align:left;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -356,6 +356,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .keys div span:last-child{display:flex;gap:4px}
 .keys kbd{font-size:11px;padding:4px 7px;background:#3e3e3e;color:#fff}
 .keys h4{grid-column:1/-1;margin:12px 0 0;font-size:12px;color:var(--text)}
+@media(max-width:640px){.keys{grid-template-columns:minmax(0,1fr)}.keys div{gap:10px}.keys div span:first-child{min-width:0}.keys div span:last-child{flex-wrap:wrap;justify-content:flex-end;flex:none;max-width:55%}}  /* 휴대폰: 한 줄에 하나씩 */
 .set-row{display:grid;grid-template-columns:1fr 200px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #3a3a3a;font-size:13px}
 .set-row small{display:block;color:var(--sub);font-size:12px}
 .set-row select,.set-row .inp{background:#3e3e3e}
@@ -690,42 +691,65 @@ a.btn{text-decoration:none}
 <div class="modal-bg" id="mHelp"><div class="modal">
   <h3>단축키 · 사용법 <button class="icon-btn" data-close data-i="x"></button></h3>
   <div class="howto">
-    <h4>이렇게 쓰세요</h4>
+    <h4>기본 흐름</h4>
     <ol>
-      <li><b>폴더 지정</b> — 왼쪽 위에 원본 폴더와 보정본(HP) 폴더를 넣고 <b>불러오기</b></li>
-      <li><b>파일 하나만</b> — <b>파일 하나만 열어 보정</b> (또는 이미지를 창에 끌어다 놓기) → 고친 뒤 <kbd>Space</kbd> 면 그 파일에 저장 · 처음 모습은 왼쪽 원본에 남아요</li>
-      <li><b>검수</b> — 오른쪽에 보정본 파일이 그대로 보여요. 이상 없으면 <kbd>Space</kbd> → 다음 장</li>
-      <li><b>필요한 장만 고치기</b> — 회전 <kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd>, 기울기 <kbd>,</kbd><kbd>.</kbd>, 크롭 <kbd>C</kbd>, 잡티 힐링 <kbd>J</kbd> 등 → <kbd>Space</kbd></li>
-      <li><b>크롭</b> <kbd>C</kbd> — 모서리·상하좌우 선을 끌거나, 아래 좌·상·우·하 칸에 px 입력 · 잡은 변은 방향키로 1px (<kbd>Shift</kbd> 10px) · <kbd>R</kbd> 확정</li>
+      <li><b>폴더 지정</b> — 원본 폴더와 보정본(HP) 폴더를 넣고 <b>불러오기</b> · 하위 폴더 파일까지 모두 불러와요</li>
+      <li><b>파일 하나만</b> — <b>파일 하나만 열어 보정</b> (또는 이미지를 창에 끌어다 놓기) → 고친 뒤 <kbd>Space</kbd> 면 그 파일에 저장</li>
+      <li><b>검수</b> — 이상 없으면 <kbd>Space</kbd> (저장 + 다음 장) · <kbd>←</kbd><kbd>→</kbd> 로 넘겨도 고친 내용은 자동 저장</li>
+      <li><b>필요한 장만 고치기</b> — 회전·크롭·지우기 등으로 고친 뒤 <kbd>Space</kbd> · 실수했으면 <kbd>Ctrl Z</kbd>, 처음 상태로 <kbd>X</kbd></li>
       <li><b>보정이 어려우면</b> <kbd>Q</kbd> — 원본을 그대로 보정본으로 저장</li>
-      <li><b>많이 넘길 때</b> <kbd>N</kbd> 자동 넘김 — 정한 초마다 확인·저장 (아래 <kbd>3초</kbd> 버튼으로 간격 변경, 아무 키·클릭이면 멈춤)</li>
-      <li><b>넓게 보기</b> <kbd>Tab</kbd> — 양쪽 패널을 숨기고 이미지만 크게</li>
+    </ol>
+    <h4>반복 작업 줄이기</h4>
+    <ol>
+      <li><b>작업 저장 1~9</b> — 고친 뒤 <kbd>Shift</kbd>+<kbd>1</kbd>~<kbd>9</kbd> (또는 오른쪽 빈 칸 클릭)로 저장 → 다른 장에서 <kbd>1</kbd>~<kbd>9</kbd> 누르면 그대로 적용 · 다시 켜도 남아 있어요 · 채워진 칸 바꾸기는 <kbd>Shift</kbd>+클릭</li>
+      <li><b>여러 장에 한꺼번에</b> — 작업 번호와 범위(예: 12~48장)를 정하면 그 장을 열 때 적용되고, 넘기면 저장 · 이미 검수한 장은 건너뜀</li>
+      <li><b>보정 붙여넣기</b> <kbd>V</kbd> — [지금 보정 기억]한 보정, 없으면 직전에 저장한 보정을 이 장에 · 스위치를 켜면 다음 장마다 자동 적용</li>
+      <li><b>자동 넘김</b> <kbd>N</kbd> — 정한 초마다 확인·저장하며 넘김 (아래 <kbd>3초</kbd> 버튼으로 간격) · 경고가 뜬 장에서 멈추는데, 메뉴의 <b>경고가 떠도 넘기기</b>에서 고른 경고는 멈추지 않아요</li>
+      <li><b>선택하면 바로 흰색 채우기</b> — 켜 두면 영역을 고르자마자 흰색으로 채워요 (얼룩·구멍 지울 때)</li>
+    </ol>
+    <h4>크롭 · 선택 · 칠하기</h4>
+    <ol>
+      <li><b>크롭</b> <kbd>C</kbd> — 선을 끌거나, 모서리·변을 <b>클릭할 때마다</b> 정한 px(기본 5px, 아래 '클릭당' 칸)씩 안쪽으로 · 모서리는 양쪽 변 모두 · 잡은 변은 방향키 1px (<kbd>Shift</kbd> 10px) · <kbd>R</kbd> 확정 (안 눌러도 넘기면 확정)</li>
+      <li><b>크롭 중 화면 이동</b> — <kbd>Space</kbd> 누른 채 끌거나 손바닥 <kbd>H</kbd> · 손바닥 상태에서도 크롭 선은 그대로 조절돼요</li>
+      <li><b>선택 영역 옮기기</b> — <kbd>Shift</kbd>+방향키 1px (<kbd>Ctrl Shift</kbd>+방향키 10px) · 그냥 방향키는 언제나 이전/다음 장</li>
+      <li><b>곧은 선</b> — 브러시·펜·지우개·힐링에서 <kbd>Shift</kbd> 누르고 그리면 가로·세로 직선, 다각형 올가미는 45° 단위</li>
+      <li><b>도구 고정</b> — 한 번 고른 도구는 다음 장에서도 그대로 (크롭만 장마다 새로, 기본은 사각형 선택)</li>
+    </ol>
+    <h4>원본 수정 · 화면</h4>
+    <ol>
+      <li><b>원본 수정</b> <kbd>O</kbd> — 원본 쪽을 고치면 원본 파일에도 저장돼요 (백업 없음) · 완료를 안 눌러도 <kbd>Space</kbd>·<kbd>←</kbd><kbd>→</kbd> 로 넘기면 완료 처리 · 취소 <kbd>Esc</kbd></li>
+      <li><b>넓게 보기</b> <kbd>Tab</kbd> — 양쪽 패널을 숨기고 이미지만 크게 · 원본 창 접기 <kbd>Shift Tab</kbd> · 보정본 창은 오른쪽 위 접기 버튼</li>
+      <li><b>속도</b> — 환경설정에서 미리보기 해상도·미리 읽기 장수 조절 (낮을수록 빨리 뜨고, 저장은 언제나 원래 해상도)</li>
     </ol>
   </div>
   <div class="keys">
     <h4>검수 진행</h4>
     <div><span>자동 보정 확인(저장) + 다음</span><span><kbd>Space</kbd></span></div>
-    <div><span>화면 이동 (어느 도구에서나)</span><span><kbd>Space</kbd> 누른 채 끌기</span></div>
+    <div><span>화면 이동 (어느 도구에서나)</span><span><kbd>Space</kbd>+끌기</span></div>
     <div><span>원본 그대로 복사 (현재 위치 유지)</span><span><kbd>Q</kbd></span></div>
     <div><span>이전 파일 (수정했으면 자동 저장)</span><span><kbd>←</kbd></span></div>
     <div><span>다음 파일 (자동 저장)</span><span><kbd>→</kbd></span></div>
+    <div><span>자동 넘김 켜기/끄기</span><span><kbd>N</kbd></span></div>
+    <div><span>단축키·사용법 열기</span><span><kbd>/</kbd></span></div>
     <h4>회전 · 기울기</h4>
     <div><span>회전 0° / 90° / 180° / 270°</span><span><kbd>S</kbd><kbd>D</kbd><kbd>W</kbd><kbd>A</kbd></span></div>
     <div><span>기울기 −0.5° / +0.5°</span><span><kbd>,</kbd><kbd>.</kbd></span></div>
     <div><span>기울기 −0.1° / +0.1°</span><span><kbd>Shift</kbd><kbd>,</kbd><kbd>.</kbd></span></div>
     <div><span>자유 회전 (드래그 · Shift=1°)</span><span><kbd>T</kbd></span></div>
-    <div><span>원본 수정 시작 / 완료</span><span><kbd>O</kbd></span></div>
+    <div><span>원본 수정 시작 / 완료 (취소 Esc)</span><span><kbd>O</kbd></span></div>
     <h4>도구</h4>
     <div><span>사각형 선택 / 원형 선택 (마퀴)</span><span><kbd>L</kbd><kbd>U</kbd></span></div>
     <div><span>다각형 올가미 (Enter 닫기 · Backspace 점 취소)</span><span><kbd>Y</kbd></span></div>
     <div><span>페인트통</span><span><kbd>G</kbd></span></div>
-    <div><span>자동 넘김 켜기/끄기</span><span><kbd>N</kbd></span></div>
     <div><span>AI 맞춤 (학습한 대로 자르기)</span><span><kbd>F</kbd></span></div>
     <div><span>선택 해제 / 반전 / 흰색 채우기</span><span><kbd>Ctrl D</kbd><kbd>Ctrl Shift I</kbd><kbd>Del</kbd></span></div>
     <div><span>힐링 / 도장 / 지우개 / 브러시 / 펜</span><span><kbd>J</kbd><kbd>K</kbd><kbd>E</kbd><kbd>B</kbd><kbd>P</kbd></span></div>
     <div><span>도장 원본 지점 지정</span><span><kbd>Alt</kbd>+클릭</span></div>
     <div><span>브러시·지우개 크기</span><span><kbd>[</kbd><kbd>]</kbd></span></div>
-    <div><span>크롭 모드 / 이동</span><span><kbd>C</kbd><kbd>H</kbd></span></div>
+    <div><span>가로·세로 직선 (칠하기 도구)</span><span><kbd>Shift</kbd>+끌기</span></div>
+    <div><span>선택 영역 옮기기 1px / 10px</span><span><kbd>Shift</kbd>+방향키 <kbd>Ctrl Shift</kbd>+방향키</span></div>
+    <div><span>크롭 / 손바닥(이동)</span><span><kbd>C</kbd><kbd>H</kbd></span></div>
+    <div><span>크롭 선 1px / 10px</span><span>방향키 <kbd>Shift</kbd>+방향키</span></div>
     <div><span>크롭 확정 / 취소</span><span><kbd>R</kbd><kbd>Esc</kbd></span></div>
     <div><span>기억한 보정(없으면 직전 보정) 붙여넣기</span><span><kbd>V</kbd></span></div>
     <div><span>지금 보정을 1~9번에 저장</span><span><kbd>Shift</kbd>+<kbd>1</kbd>~<kbd>9</kbd></span></div>
@@ -737,7 +761,7 @@ a.btn{text-decoration:none}
     <div><span>확대 / 축소 / 맞춤 / 100%</span><span><kbd>Ctrl +</kbd><kbd>Ctrl −</kbd><kbd>Ctrl 0</kbd><kbd>Ctrl 1</kbd></span></div>
     <div><span>화면 맞춤 · 휠 확대·축소</span><span><kbd>0</kbd></span></div>
     <div><span>화면만 크게 (패널 모두 숨기기)</span><span><kbd>Tab</kbd></span></div>
-    <div><span>원본 패널 숨기기</span><span><kbd>Shift</kbd><kbd>Tab</kbd></span></div>
+    <div><span>원본 창 접기 / 펴기</span><span><kbd>Shift</kbd><kbd>Tab</kbd></span></div>
     <div><span>되돌리기 / 다시 실행 / 처음 상태로</span><span><kbd>Ctrl Z</kbd><kbd>Ctrl Y</kbd><kbd>X</kbd></span></div>
   </div>
   <p class="hint" style="font-size:12px">한글 입력 상태에서도 단축키가 동작합니다. 입력칸에 커서가 있을 때는 Esc로 빠져나오세요.</p>
