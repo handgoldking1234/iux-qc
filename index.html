@@ -554,9 +554,11 @@ a.btn{text-decoration:none}
         <div class="toggle" id="tLabel" title="오른쪽 아래 4자리 라벨 번호(예: 0639)가 다른 모서리에 있거나 옆으로 누워 있으면 90° 단위로 돌려 정면으로 맞춰요"><span>라벨 번호로 방향 맞춤</span><span class="sw" id="swLabel"></span></div>
         <div class="trim-unit" hidden><span id="trimTxt">최대 5px · 테두리 선·검은 띠·흰 줄만</span><div class="mini-seg" id="trimUnit"><button data-v="px">px</button><button data-v="mm">mm</button></div></div>
         <div class="grid2 mt8">
-          
-          <button class="btn btn-dark btn-sm" id="btnPaste" title="직전에 수정한 보정을 그대로 (V)">이전 보정 V</button>
+          <button class="btn btn-dark btn-sm" id="btnPin" title="지금 화면의 보정(회전·크롭·칠하기 등)을 기억해 두었다가 다른 장에 똑같이 적용">지금 보정 기억</button>
+          <button class="btn btn-dark btn-sm" id="btnPaste" title="기억한 보정(없으면 직전에 저장한 보정)을 이 장에 그대로 (V)">보정 붙여넣기 V</button>
         </div>
+        <div class="toggle" id="tPinAuto" title="켜 두면 아직 검수하지 않은 장을 열 때마다 기억한 보정을 자동으로 적용해요 · 같은 위치에 같은 문제가 반복될 때"><span>기억한 보정을 다음 장에도 적용</span><span class="sw" id="swPinAuto"></span></div>
+        <div class="hint" id="pinHint" style="margin:6px 0 0" hidden></div>
       </div>
 
       <div class="sec foldable" id="secRot">
@@ -710,7 +712,7 @@ a.btn{text-decoration:none}
     <div><span>브러시·지우개 크기</span><span><kbd>[</kbd><kbd>]</kbd></span></div>
     <div><span>크롭 모드 / 이동</span><span><kbd>C</kbd><kbd>H</kbd></span></div>
     <div><span>크롭 확정 / 취소</span><span><kbd>R</kbd><kbd>Esc</kbd></span></div>
-    <div><span>이전 보정 붙여넣기</span><span><kbd>V</kbd></span></div>
+    <div><span>기억한 보정(없으면 직전 보정) 붙여넣기</span><span><kbd>V</kbd></span></div>
     <h4>보기 · 기타</h4>
     <div><span>돋보기 켜기/끄기</span><span><kbd>M</kbd></span></div>
     <div><span>돋보기 배율</span><span><kbd>[</kbd><kbd>]</kbd></span></div>
@@ -1595,7 +1597,9 @@ async function go(i){
     const reviewed=info.hp&&REVIEWED.includes(f.status);
     S.autoEd=info.orig?nextAuto():null;
     S.initEdits=(S.cfg.on_load!=='hp'&&S.autoEd&&!reviewed)?clone(S.autoEd):defaultEdits(info.hp?'hp':'orig');
-    S.edits=S.memo[f.name]?clone(S.memo[f.name]):clone(S.initEdits);S.edits.paints=S.edits.paints||[];S.initEdits.paints=S.initEdits.paints||[];S.hist=[];S.fut=[];S.stampOff=null;
+    S.edits=S.memo[f.name]?clone(S.memo[f.name]):clone(S.initEdits);
+    if(S.pinAuto&&S.pin&&!S.memo[f.name]&&!reviewed&&!S.cur.locked)applyPinTo(S.edits,S.pin);  /* 기억한 보정을 다음 장에도 */
+    S.edits.paints=S.edits.paints||[];S.initEdits.paints=S.initEdits.paints||[];S.hist=[];S.fut=[];S.stampOff=null;
     const q=qcList();f.qc=q.some(w=>w.level==='error')?'error':q.some(w=>w.level==='warn')?'warn':null;Engine.src.setQc(f.name,f.qc);
     stageC.key=null;resultC.key=null;
     vO.setSrc(imgO,false);renderRight('reset');renderLeft();
@@ -1663,8 +1667,15 @@ async function copyOriginal(){if(!S.cur||S.origEdit)return;if(!S.cur.info.orig){
   catch(e){setStatus(i,'error');toast('복사 실패 · '+e.message,'err',6000)}}
 async function restoreBackup(){if(!S.cur)return;const i=S.idx,name=S.cur.name;
   try{await api.post('/api/restore',{name});delete S.memo[name];setStatus(i,'');toast('백업에서 복원했어요');go(i)}catch(e){toast(e.message,'err')}}
-function pastePrev(){if(!S.cur)return;if(!S.lastSaved){toast('붙여넣을 이전 보정이 없습니다','warn');return}
-  commit(e=>{const p=clone(S.lastSaved);delete p.pre;const keep=e.pre;Object.assign(e,p);e.pre=keep||null;if(e.base==='hp'&&!hasHP())e.base='orig'},false);toast('이전 보정을 적용했어요')}
+/* 보정 기억: 지금 보정을 기억해 두고 (1) V 로 다른 장에 붙여넣기 (2) 스위치를 켜면 다음 장부터 자동 적용 */
+function pinParts(e){const a=[];if(e.rot)a.push(e.rot+'° 회전');if(Math.abs(e.tilt||0)>1e-6)a.push('기울기 '+(+e.tilt).toFixed(1)+'°');if(e.crop)a.push('크롭');if((e.erases||[]).length)a.push('지우기 '+e.erases.length);if((e.paints||[]).length)a.push('칠하기·채우기 '+e.paints.length);
+  const rest=clone(e);rest.rot=0;rest.tilt=0;rest.crop=null;rest.erases=[];rest.paints=[];if(!isDefault(rest))a.push('색·크기');return a}
+function syncPin(){$('#swPinAuto').classList.toggle('on',!!S.pinAuto);const h=$('#pinHint');h.hidden=!S.pin;if(S.pin)h.textContent='기억한 보정: '+(pinParts(S.pin).join(' · ')||'없음');$('#btnPin').classList.toggle('btn-primary',false)}
+function pinNow(){if(!S.cur||S.origEdit)return;if(isDefault(S.edits)){toast('기억할 보정이 없어요 · 먼저 이 장을 고치세요','warn');return}
+  const p=clone(S.edits);delete p.pre;delete p.base;S.pin=p;syncPin();toast('지금 보정을 기억했어요 · V 로 붙여넣기 · 스위치를 켜면 다음 장에도 자동 적용','ok',3200)}
+function applyPinTo(e,p){p=clone(p);delete p.pre;const keep=e.pre,b=e.base;Object.assign(e,p);e.pre=keep||null;e.base=p.base||b;if(e.base==='hp'&&!hasHP())e.base='orig'}
+function pastePrev(){if(!S.cur)return;const p=S.pin||S.lastSaved;if(!p){toast('붙여넣을 보정이 없습니다 · [지금 보정 기억]을 누르거나 한 장을 고쳐 저장하세요','warn',3200);return}
+  commit(e=>applyPinTo(e,p),false);toast(S.pin?'기억한 보정을 적용했어요':'직전에 저장한 보정을 적용했어요')}
 function toggleBase(v){if(!S.cur)return;v=v||(baseSide()==='hp'?'orig':'hp');if(v==='hp'&&!hasHP())return;
   if(v===baseSide())return;commit(e=>{e.base=v;e.crop=null;e.erases=[];e.rot=0;e.tilt=0},false)}
 /* 다각형 선택: 꼭짓점(스테이지 비율) + 감싸는 상자 x,y,w,h (상자는 영역 계산·저장 서버와 공유) */
@@ -1821,7 +1832,7 @@ async function startSource(src,btn){
   if(S.origEdit)exitOrigEdit(false);
   if(Engine.pending){toast('저장 중인 파일을 마무리하는 중…','ok',2000);await Promise.allSettled([...Engine.jobs.values()])}
   if(btn)btn.disabled=true;
-  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.skipQc=new Set();secTxt();S.cur=null;S.loadSeq++;
+  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.skipQc=new Set();secTxt();S.pinAuto=false;syncPin();S.cur=null;S.loadSeq++;
     const sn=$('#srcName');sn.hidden=false;sn.querySelector('b').textContent=r.title;sn.title=r.title;
     renderList();updateStats();
     if(!S.files.length){toast(src.kind==='cloud'?'이 묶음에 나에게 보이는 파일이 없어요':'이미지 파일이 없습니다','warn',4000);return}
@@ -1948,7 +1959,9 @@ const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit
 $('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??2,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
 
-$('#btnPaste').onclick=pastePrev;
+$('#btnPaste').onclick=pastePrev;$('#btnPin').onclick=pinNow;
+$('#tPinAuto').onclick=()=>{if(!S.pinAuto&&!S.pin){if(S.cur&&!isDefault(S.edits))pinNow();else{toast('먼저 한 장을 고친 뒤 [지금 보정 기억]을 누르세요','warn',3000);return}}
+  S.pinAuto=!S.pinAuto;syncPin();toast(S.pinAuto?'아직 검수하지 않은 장을 열면 기억한 보정을 자동으로 적용해요':'자동 적용을 껐어요','ok',2600)};
 $('#rotBtns').onclick=e=>{const b=e.target.closest('[data-r]');if(b)setRot(+b.dataset.r)};
 
 
