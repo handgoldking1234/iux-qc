@@ -820,6 +820,7 @@ const ICONS={
 'rotate-ccw':'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
 'undo-2':'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
 'redo-2':'<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
+'minimize-2':'<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/>',
 'maximize-2':'<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
 'sun':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
 'clipboard-paste':'<path d="M15 2H9a1 1 0 0 0-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1Z"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2M16 4h2a2 2 0 0 1 2 2v2M11 14h10"/><path d="m17 10 4 4-4 4"/>',
@@ -1759,7 +1760,7 @@ $('#btnOEdit').onclick=enterOrigEdit;$('#btnOCancel').onclick=()=>exitOrigEdit(f
 function setMag(on){S.mag=on;$('#pMag').classList.toggle('on',on);$('#pMag').style.color=on?'var(--accentText)':'';if(!on)hideMag()}
 function setMagZ(z){S.magZ=clamp(Math.round(z*2)/2,2,10);setRange($('#magZ'),S.magZ);$('#magZTxt').textContent=S.magZ+'×';$('#magTxt').textContent=S.magZ+'×'}
 /* Tab: 목록·보정 패널·제목줄·재생줄을 모두 숨기고 원본·보정본 화면만 크게 (포토샵 Tab 과 같은 방식) */
-function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.title=on?'전체 보기 끝내기 · 패널 다시 보기 (Tab)':'전체 보기 · 패널 숨기기 (Tab)'}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
+function setFocus(on){APP.classList.toggle('focus',on);{const b=$('#pFocus');if(b){b.title=on?'전체 보기 끝내기 · 패널 다시 보기 (Tab)':'전체 보기 · 패널 숨기기 (Tab)';b.innerHTML=ic(on?'minimize-2':'maximize-2',16)}}try{placeTools()}catch(e){}APP.classList.remove('lib-open','ins-open');requestAnimationFrame(()=>{vO.resize();vH.resize();vO.fit();vH.fit()});if(on)toast('화면만 보기 · Tab 을 다시 누르면 패널이 돌아와요','ok',1800)}
 function setSolo(on){if(on&&S.origEdit)return;if(on&&S.soloH)setSoloH(false);S.solo=on;$('#panes').classList.toggle('solo',on);$('#pSolo').style.color=on?'var(--accentText)':'';try{localStorage.setItem('scanqc:solo',on?'1':'')}catch(e){}requestAnimationFrame(()=>{vO.resize();vH.resize();vH.fit()})}
 /* 접기 상태 기억: 왼쪽 폴더(f)·진행 현황(s), 오른쪽 자동 보정·회전 */
 const FOLD=(()=>{try{return JSON.parse(localStorage.getItem('scanqc:fold')||'{}')}catch(e){return{}}})();
