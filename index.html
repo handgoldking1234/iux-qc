@@ -1706,7 +1706,7 @@ function saveSlots(){try{localStorage.setItem('scanqc:slots',JSON.stringify(SLOT
 function renderSlots(){let last=-1;SLOTS.forEach((s,i)=>{if(s)last=i});const vis=Math.max(3,Math.min(NSLOT,Math.ceil((last+2)/3)*3));$('#slotAll').hidden=vis>=NSLOT;$('#slotAll').textContent=$('#slots').classList.contains('all')?'접기':'모두 보기';
   $$('#slots .slot').forEach((b,i)=>{const s=SLOTS[i],d=s?(pinParts(s).join(' · ')||'보정'):'';b.classList.toggle('has',!!s);b.classList.toggle('more',i>=vis);
   b.innerHTML='<b>'+(i+1)+'</b><small>'+(s?escH(d):'비어 있음')+'</small>';
-  b.title=s?`${i+1}번 작업: ${d}\n클릭 또는 ${i+1} → 이 장에 적용\nShift+클릭 또는 Shift+${i+1} → 지금 보정으로 바꾸기`:`비어 있음 · 이 장을 고친 뒤 Shift+클릭 또는 Shift+${i+1} 로 저장`})}
+  b.title=s?`${i+1}번 작업: ${d}\n클릭 또는 ${i+1} → 이 장에 적용\nShift+클릭 또는 Shift+${i+1} → 지금 보정으로 바꾸기`:`비어 있음 · 클릭하면 지금 보정을 저장 (Shift+${i+1})`})}
 function flashSlot(n){const b=$('#slots .slot[data-n="'+n+'"]');if(!b)return;b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),500)}
 function slotSave(n){if(!S.cur||S.origEdit)return;if(isDefault(S.edits)){toast('저장할 보정이 없어요 · 먼저 이 장을 고치세요','warn');return}
   const p=clone(S.edits);delete p.pre;delete p.base;SLOTS[n-1]=p;saveSlots();renderSlots();flashSlot(n);toast(`${n}번에 저장했어요 · ${pinParts(p).join(' · ')} · 다른 장에서 ${n} 을 누르면 그대로 적용`,'ok',3200)}
@@ -2020,7 +2020,7 @@ $('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.c
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
 
 $('#btnPaste').onclick=pastePrev;$('#btnPin').onclick=pinNow;renderSlots();
-$('#slots').onclick=e=>{const b=e.target.closest('.slot');if(!b)return;const n=+b.dataset.n;e.shiftKey?slotSave(n):slotApply(n)};
+$('#slots').onclick=e=>{const b=e.target.closest('.slot');if(!b)return;const n=+b.dataset.n;(e.shiftKey||!SLOTS[n-1])?slotSave(n):slotApply(n)};  /* 빈 칸은 클릭만 해도 저장 */
 $('#btnBatch').onclick=openBatch;$('#slotAll').onclick=()=>{$('#slots').classList.toggle('all');renderSlots()};$('#planX').onclick=()=>{S.plan=null;syncPlan();toast('예약을 취소했어요')};$('#bGo').onclick=runBatch;
 $('#bSlot').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;$$('#bSlot button').forEach(x=>x.classList.toggle('on',x===b));bInfo()};
 ['#bFrom','#bTo'].forEach(q=>{$(q).oninput=bInfo;$(q).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runBatch()}}});
