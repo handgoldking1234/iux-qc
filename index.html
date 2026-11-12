@@ -281,6 +281,14 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .sec-h span+span{flex:1}.sec-h .sw{flex:none}.sec-h .chev{flex:none;display:grid;place-items:center;margin-left:4px}
 .sec-h small{color:var(--sub);font-weight:500;font-size:12px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.slot{min-width:0;height:46px;border-radius:6px;background:transparent;border:1px dashed #3a3a3a;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0 4px;font:inherit}
+.slot b{font-size:14px;font-weight:700;line-height:1}.slot small{font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.has{background:var(--elev2);border:1px solid transparent;color:var(--sub)}.slot.has b{color:var(--accentText,var(--accent))}.slot:hover{border-color:#555}.slot.flash{border-color:var(--accent)}
+.slot-h{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12px;font-weight:600;color:var(--sub)}.slot-h small{font-weight:400;color:var(--mute);font-size:11px}
+.brow{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px}.brow>span:first-child{width:44px;color:var(--sub)}.brow input{width:80px;height:32px;background:var(--elev2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:0 8px;font:inherit}
+#bSlot button{min-width:40px}#bSlot button:disabled{opacity:.3;cursor:default}
+.plan{display:flex;align-items:center;justify-content:space-between;gap:8px}.plan button{background:none;border:0;color:var(--accentText,var(--accent));cursor:pointer;font:inherit;font-size:12px;padding:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .tbtn{height:44px;border-radius:6px;background:var(--elev2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:600;transition:.15s}
@@ -561,6 +569,10 @@ a.btn{text-decoration:none}
         </div>
         <div class="toggle" id="tPinAuto" title="켜 두면 아직 검수하지 않은 장을 열 때마다 기억한 보정을 자동으로 적용해요 · 같은 위치에 같은 문제가 반복될 때"><span>기억한 보정을 다음 장에도 적용</span><span class="sw" id="swPinAuto"></span></div>
         <div class="hint" id="pinHint" style="margin:6px 0 0" hidden></div>
+        <div class="slot-h"><span>작업 저장</span><small>Shift+1~4 저장 · 1~4 적용</small></div>
+        <div class="slots" id="slots"><button class="slot" data-n="1"></button><button class="slot" data-n="2"></button><button class="slot" data-n="3"></button><button class="slot" data-n="4"></button></div>
+        <button class="btn btn-dark btn-sm mt8" id="btnBatch" style="width:100%" title="저장해 둔 작업을 몇 장부터 몇 장까지 한꺼번에">여러 장에 한꺼번에…</button>
+        <div class="hint plan" id="planHint" style="margin:6px 0 0" hidden><span id="planTxt"></span><button id="planX">예약 취소</button></div>
       </div>
 
       <div class="sec foldable" id="secRot">
@@ -715,6 +727,8 @@ a.btn{text-decoration:none}
     <div><span>크롭 모드 / 이동</span><span><kbd>C</kbd><kbd>H</kbd></span></div>
     <div><span>크롭 확정 / 취소</span><span><kbd>R</kbd><kbd>Esc</kbd></span></div>
     <div><span>기억한 보정(없으면 직전 보정) 붙여넣기</span><span><kbd>V</kbd></span></div>
+    <div><span>지금 보정을 1~4번에 저장</span><span><kbd>Shift</kbd>+<kbd>1</kbd>~<kbd>4</kbd></span></div>
+    <div><span>저장한 1~4번 작업 적용</span><span><kbd>1</kbd>~<kbd>4</kbd></span></div>
     <h4>보기 · 기타</h4>
     <div><span>돋보기 켜기/끄기</span><span><kbd>M</kbd></span></div>
     <div><span>돋보기 배율</span><span><kbd>[</kbd><kbd>]</kbd></span></div>
@@ -744,6 +758,14 @@ a.btn{text-decoration:none}
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn btn-ghost" data-close>닫기</button><button class="btn btn-green" id="sSave">저장</button></div>
 </div></div>
 
+<div class="modal-bg" id="mBatch"><div class="modal" style="width:400px">
+  <h3>여러 장에 한꺼번에 <button class="icon-btn" data-close data-i="x"></button></h3>
+  <p class="hint" style="font-size:13px;margin:0 0 14px">저장해 둔 작업을 정한 범위에 똑같이 적용해요. 바로 저장하지 않고 <b>적용만 해 두고</b>, 그 장을 열어 확인한 뒤 넘기면 저장돼요. 자동 넘김(N)과 함께 쓰면 편해요.</p>
+  <div class="brow"><span>작업</span><div class="mini-seg" id="bSlot"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+  <div class="brow"><span>범위</span><input type="number" id="bFrom" min="1"> ~ <input type="number" id="bTo" min="1"> 장</div>
+  <p class="hint" id="bInfo" style="margin:0 0 14px;min-height:18px"></p>
+  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" data-close>취소</button><button class="btn btn-green" id="bGo">적용해 두기</button></div>
+</div></div>
 <div class="modal-bg" id="mPc"><div class="modal" style="width:440px">
   <h3>PC 설치형 ScanQC <button class="icon-btn" data-close data-i="x"></button></h3>
   <p class="hint" style="font-size:13px;margin:0 0 12px">Windows 10·11용 · 인터넷 없이 동작 · 폴더 전체 경로 표시 · 파이썬 포함(따로 설치할 것 없음)</p>
@@ -1607,7 +1629,8 @@ async function go(i){
     S.autoEd=info.orig?nextAuto():null;
     S.initEdits=(S.cfg.on_load!=='hp'&&S.autoEd&&!reviewed)?clone(S.autoEd):defaultEdits(info.hp?'hp':'orig');
     S.edits=S.memo[f.name]?clone(S.memo[f.name]):clone(S.initEdits);
-    if(S.pinAuto&&S.pin&&!S.memo[f.name]&&!reviewed&&!S.cur.locked)applyPinTo(S.edits,S.pin);  /* 기억한 보정을 다음 장에도 */
+    if(inPlan(i)&&!S.memo[f.name]&&!reviewed&&!S.cur.locked)applyPinTo(S.edits,S.plan.p);  /* 여러 장에 한꺼번에 예약 */
+    else if(S.pinAuto&&S.pin&&!S.memo[f.name]&&!reviewed&&!S.cur.locked)applyPinTo(S.edits,S.pin);  /* 기억한 보정을 다음 장에도 */
     S.edits.paints=S.edits.paints||[];S.initEdits.paints=S.initEdits.paints||[];S.hist=[];S.fut=[];S.stampOff=null;
     const q=qcList();f.qc=q.some(w=>w.level==='error')?'error':q.some(w=>w.level==='warn')?'warn':null;Engine.src.setQc(f.name,f.qc);
     stageC.key=null;resultC.key=null;
@@ -1676,6 +1699,32 @@ async function copyOriginal(){if(!S.cur||S.origEdit)return;if(!S.cur.info.orig){
   catch(e){setStatus(i,'error');toast('복사 실패 · '+e.message,'err',6000)}}
 async function restoreBackup(){if(!S.cur)return;const i=S.idx,name=S.cur.name;
   try{await api.post('/api/restore',{name});delete S.memo[name];setStatus(i,'');toast('백업에서 복원했어요');go(i)}catch(e){toast(e.message,'err')}}
+/* 작업 저장 1~4: Shift+숫자로 지금 보정을 저장, 숫자로 적용 · 브라우저에 남아 다시 켜도 그대로 · 원본 수정은 빼고 */
+let SLOTS=[null,null,null,null];try{const v=JSON.parse(localStorage.getItem('scanqc:slots')||'null');if(Array.isArray(v))SLOTS=[0,1,2,3].map(i=>v[i]||null)}catch(e){}
+function saveSlots(){try{localStorage.setItem('scanqc:slots',JSON.stringify(SLOTS))}catch(e){}}
+function renderSlots(){$$('#slots .slot').forEach((b,i)=>{const s=SLOTS[i],d=s?(pinParts(s).join(' · ')||'보정'):'';b.classList.toggle('has',!!s);
+  b.innerHTML='<b>'+(i+1)+'</b><small>'+(s?escH(d):'비어 있음')+'</small>';
+  b.title=s?`${i+1}번 작업: ${d}\n클릭 또는 ${i+1} → 이 장에 적용\nShift+클릭 또는 Shift+${i+1} → 지금 보정으로 바꾸기`:`비어 있음 · 이 장을 고친 뒤 Shift+클릭 또는 Shift+${i+1} 로 저장`})}
+function flashSlot(n){const b=$('#slots .slot[data-n="'+n+'"]');if(!b)return;b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),500)}
+function slotSave(n){if(!S.cur||S.origEdit)return;if(isDefault(S.edits)){toast('저장할 보정이 없어요 · 먼저 이 장을 고치세요','warn');return}
+  const p=clone(S.edits);delete p.pre;delete p.base;SLOTS[n-1]=p;saveSlots();renderSlots();flashSlot(n);toast(`${n}번에 저장했어요 · ${pinParts(p).join(' · ')} · 다른 장에서 ${n} 을 누르면 그대로 적용`,'ok',3200)}
+function slotApply(n){if(!S.cur||S.origEdit)return;const p=SLOTS[n-1];if(!p){toast(`${n}번이 비어 있어요 · 이 장을 고친 뒤 Shift+${n} 로 저장하세요`,'warn',3000);return}
+  if(S.cur.locked){toast(`${S.cur.locked}님이 작업 중인 파일이에요`,'warn');return}commit(e=>applyPinTo(e,p),false);flashSlot(n);toast(`${n}번 작업을 적용했어요`)}
+/* 여러 장에 한꺼번에: 범위를 예약해 두고, 아직 검수하지 않은 장을 열 때 적용 → 넘기면 저장 */
+function planLeft(){const pl=S.plan;if(!pl)return 0;let c=0;for(let i=pl.from-1;i<pl.to&&i<S.files.length;i++){const f=S.files[i];if(f&&!REVIEWED.includes(f.status))c++}return c}
+function syncPlan(){const pl=S.plan,h=$('#planHint');h.hidden=!pl;if(pl)$('#planTxt').textContent=`예약: ${pl.from}~${pl.to}장 · ${pl.n}번 작업 · 남은 ${planLeft()}장`}
+function inPlan(i){const pl=S.plan;return !!pl&&i+1>=pl.from&&i+1<=pl.to}
+function bInfo(){const n=+$('#bSlot .on')?.dataset.v||0,a=+$('#bFrom').value,b=+$('#bTo').value,N=S.files.length,el=$('#bInfo'),go=$('#bGo');let msg='',ok=false;
+  if(!n)msg='작업 번호를 고르세요';else if(!SLOTS[n-1])msg=`${n}번이 비어 있어요`;else if(!(a>=1&&b>=a&&b<=N))msg=`1~${N} 사이로 적어 주세요`;
+  else{let todo=0,done=0;for(let i=a-1;i<b;i++)REVIEWED.includes(S.files[i].status)?done++:todo++;ok=todo>0;msg=`${n}번 (${pinParts(SLOTS[n-1]).join(' · ')}) → ${b-a+1}장`+(done?` · 이미 검수한 ${done}장은 건너뜀`:'')+(todo?'':' · 적용할 장이 없어요')}
+  el.textContent=msg;go.disabled=!ok;return ok}
+function openBatch(){if(!S.files.length){toast('먼저 폴더를 불러오세요','warn');return}if(!SLOTS.some(Boolean)){toast('저장된 작업이 없어요 · 한 장을 고친 뒤 Shift+1 로 저장하세요','warn',3200);return}
+  const n=S.plan?.n||S.lastSlot||(SLOTS.findIndex(Boolean)+1);$$('#bSlot button').forEach(b=>{b.classList.toggle('on',+b.dataset.v===n);b.disabled=!SLOTS[+b.dataset.v-1]});
+  $('#bFrom').value=Math.max(1,S.idx+1);$('#bTo').value=S.files.length;$('#bFrom').max=$('#bTo').max=S.files.length;bInfo();$('#mBatch').classList.add('show');setTimeout(()=>$('#bFrom').select(),30)}
+function runBatch(){if(!bInfo())return;const n=+$('#bSlot .on').dataset.v,a=+$('#bFrom').value,b=+$('#bTo').value;S.lastSlot=n;
+  S.plan={n,p:clone(SLOTS[n-1]),from:a,to:b};$('#mBatch').classList.remove('show');
+  const i=S.idx;if(S.cur&&!S.origEdit&&inPlan(i)&&!S.cur.locked&&!REVIEWED.includes(S.files[i].status))commit(e=>applyPinTo(e,S.plan.p),false);
+  syncPlan();toast(`${a}~${b}장에 ${n}번 작업을 예약했어요 · 열면 적용되고, 넘기면 저장돼요`,'ok',3600)}
 /* 보정 기억: 지금 보정을 기억해 두고 (1) V 로 다른 장에 붙여넣기 (2) 스위치를 켜면 다음 장부터 자동 적용 */
 function pinParts(e){const a=[];if(e.rot)a.push(e.rot+'° 회전');if(Math.abs(e.tilt||0)>1e-6)a.push('기울기 '+(+e.tilt).toFixed(1)+'°');if(e.crop)a.push('크롭');if((e.erases||[]).length)a.push('지우기 '+e.erases.length);if((e.paints||[]).length)a.push('칠하기·채우기 '+e.paints.length);
   const rest=clone(e);rest.rot=0;rest.tilt=0;rest.crop=null;rest.erases=[];rest.paints=[];if(!isDefault(rest))a.push('색·크기');return a}
@@ -1841,7 +1890,7 @@ async function startSource(src,btn){
   if(S.origEdit)exitOrigEdit(false);
   if(Engine.pending){toast('저장 중인 파일을 마무리하는 중…','ok',2000);await Promise.allSettled([...Engine.jobs.values()])}
   if(btn)btn.disabled=true;
-  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.skipQc=new Set();secTxt();S.pinAuto=false;syncPin();S.cur=null;S.loadSeq++;
+  try{const r=await Engine.open(src);S.files=r.files;S.memo={};S.lastSaved=null;S.idx=-1;S.skipQc=new Set();secTxt();S.pinAuto=false;syncPin();S.plan=null;syncPlan();S.cur=null;S.loadSeq++;
     const sn=$('#srcName');sn.hidden=false;sn.querySelector('b').textContent=r.title;sn.title=r.title;
     renderList();updateStats();
     if(!S.files.length){toast(src.kind==='cloud'?'이 묶음에 나에게 보이는 파일이 없어요':'이미지 파일이 없습니다','warn',4000);return}
@@ -1968,7 +2017,11 @@ const setTrim=(v,unit)=>{v=clamp(Math.round(+v||0),0,30);S.cfg.trim_px=v;if(unit
 $('#trimUnit').onclick=e=>{const b=e.target.closest('[data-v]');if(b)setTrim(S.cfg.trim_px??2,b.dataset.v)};
 $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.target.value);
 
-$('#btnPaste').onclick=pastePrev;$('#btnPin').onclick=pinNow;
+$('#btnPaste').onclick=pastePrev;$('#btnPin').onclick=pinNow;renderSlots();
+$('#slots').onclick=e=>{const b=e.target.closest('.slot');if(!b)return;const n=+b.dataset.n;e.shiftKey?slotSave(n):slotApply(n)};
+$('#btnBatch').onclick=openBatch;$('#planX').onclick=()=>{S.plan=null;syncPlan();toast('예약을 취소했어요')};$('#bGo').onclick=runBatch;
+$('#bSlot').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;$$('#bSlot button').forEach(x=>x.classList.toggle('on',x===b));bInfo()};
+['#bFrom','#bTo'].forEach(q=>{$(q).oninput=bInfo;$(q).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runBatch()}}});
 $('#tPinAuto').onclick=()=>{if(!S.pinAuto&&!S.pin){if(S.cur&&!isDefault(S.edits))pinNow();else{toast('먼저 한 장을 고친 뒤 [지금 보정 기억]을 누르세요','warn',3000);return}}
   S.pinAuto=!S.pinAuto;syncPin();toast(S.pinAuto?'아직 검수하지 않은 장을 열면 기억한 보정을 자동으로 적용해요':'자동 적용을 껐어요','ok',2600)};
 $('#rotBtns').onclick=e=>{const b=e.target.closest('[data-r]');if(b)setRot(+b.dataset.r)};
@@ -2116,6 +2169,8 @@ document.addEventListener('keydown',e=>{
     case'KeyB':S.lastPaint='brush';setTool('brush');break;
     case'KeyX':$('#btnReset').click();break;
     case'Digit0':case'Numpad0':vO.fit();vH.fit();break;
+    case'Digit1':case'Digit2':case'Digit3':case'Digit4':if(S.origEdit){hit=false;break}if(sh)slotSave(+e.code.slice(5));else slotApply(+e.code.slice(5));break;
+    case'Numpad1':case'Numpad2':case'Numpad3':case'Numpad4':if(S.origEdit){hit=false;break}slotApply(+e.code.slice(6));break;
     case'Tab':if(sh){if(!S.origEdit)setSolo(!S.solo)}else setFocus(!APP.classList.contains('focus'));break;
     case'KeyO':if(S.origEdit)exitOrigEdit(true);else enterOrigEdit();break;
     case'Slash':$('#mHelp').classList.add('show');break;
