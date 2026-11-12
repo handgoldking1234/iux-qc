@@ -282,13 +282,13 @@ input[type=color]{width:28px;height:24px;border:0;background:none;padding:0;curs
 .sec-h span+span{flex:1}.sec-h .sw{flex:none}.sec-h .chev{flex:none;display:grid;place-items:center;margin-left:4px}
 .sec-h small{color:var(--sub);font-weight:500;font-size:12px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
 .slot{min-width:0;height:46px;border-radius:6px;background:transparent;border:1px dashed #3a3a3a;color:var(--mute);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0 4px;font:inherit}
 .slot b{font-size:14px;font-weight:700;line-height:1}.slot small{font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slot.has{background:var(--elev2);border:1px solid transparent;color:var(--sub)}.slot.has b{color:var(--accentText,var(--accent))}.slot:hover{border-color:#555}.slot.flash{border-color:var(--accent)}
-.slot-h{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12px;font-weight:600;color:var(--sub)}.slot-h small{font-weight:400;color:var(--mute);font-size:11px}
+.slot-h{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12px;font-weight:600;color:var(--sub)}.slot-h small{font-weight:400;color:var(--mute);font-size:11px}.slot-h button{background:none;border:0;color:var(--accentText,var(--accent));cursor:pointer;font:inherit;font-size:11px;padding:0 0 0 8px}.slot.more{display:none}.slots.all .slot.more{display:flex}
 .brow{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px}.brow>span:first-child{width:44px;color:var(--sub)}.brow input{width:80px;height:32px;background:var(--elev2);border:1px solid var(--line);border-radius:6px;color:var(--text);padding:0 8px;font:inherit}
-#bSlot button{min-width:40px}#bSlot button:disabled{opacity:.3;cursor:default}
+#bSlot button{min-width:28px;padding:0 6px}#bSlot button:disabled{opacity:.3;cursor:default}
 .plan{display:flex;align-items:center;justify-content:space-between;gap:8px}.plan button{background:none;border:0;color:var(--accentText,var(--accent));cursor:pointer;font:inherit;font-size:12px;padding:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -570,8 +570,8 @@ a.btn{text-decoration:none}
         </div>
         <div class="toggle" id="tPinAuto" title="켜 두면 아직 검수하지 않은 장을 열 때마다 기억한 보정을 자동으로 적용해요 · 같은 위치에 같은 문제가 반복될 때"><span>기억한 보정을 다음 장에도 적용</span><span class="sw" id="swPinAuto"></span></div>
         <div class="hint" id="pinHint" style="margin:6px 0 0" hidden></div>
-        <div class="slot-h"><span>작업 저장</span><small>Shift+1~4 저장 · 1~4 적용</small></div>
-        <div class="slots" id="slots"><button class="slot" data-n="1"></button><button class="slot" data-n="2"></button><button class="slot" data-n="3"></button><button class="slot" data-n="4"></button></div>
+        <div class="slot-h"><span>작업 저장</span><small>Shift+1~9 저장 · 1~9 적용<button id="slotAll">모두 보기</button></small></div>
+        <div class="slots" id="slots"><button class="slot" data-n="1"></button><button class="slot" data-n="2"></button><button class="slot" data-n="3"></button><button class="slot" data-n="4"></button><button class="slot" data-n="5"></button><button class="slot" data-n="6"></button><button class="slot" data-n="7"></button><button class="slot" data-n="8"></button><button class="slot" data-n="9"></button></div>
         <button class="btn btn-dark btn-sm mt8" id="btnBatch" style="width:100%" title="저장해 둔 작업을 몇 장부터 몇 장까지 한꺼번에">여러 장에 한꺼번에…</button>
         <div class="hint plan" id="planHint" style="margin:6px 0 0" hidden><span id="planTxt"></span><button id="planX">예약 취소</button></div>
       </div>
@@ -728,8 +728,8 @@ a.btn{text-decoration:none}
     <div><span>크롭 모드 / 이동</span><span><kbd>C</kbd><kbd>H</kbd></span></div>
     <div><span>크롭 확정 / 취소</span><span><kbd>R</kbd><kbd>Esc</kbd></span></div>
     <div><span>기억한 보정(없으면 직전 보정) 붙여넣기</span><span><kbd>V</kbd></span></div>
-    <div><span>지금 보정을 1~4번에 저장</span><span><kbd>Shift</kbd>+<kbd>1</kbd>~<kbd>4</kbd></span></div>
-    <div><span>저장한 1~4번 작업 적용</span><span><kbd>1</kbd>~<kbd>4</kbd></span></div>
+    <div><span>지금 보정을 1~9번에 저장</span><span><kbd>Shift</kbd>+<kbd>1</kbd>~<kbd>9</kbd></span></div>
+    <div><span>저장한 1~9번 작업 적용</span><span><kbd>1</kbd>~<kbd>9</kbd></span></div>
     <h4>보기 · 기타</h4>
     <div><span>돋보기 켜기/끄기</span><span><kbd>M</kbd></span></div>
     <div><span>돋보기 배율</span><span><kbd>[</kbd><kbd>]</kbd></span></div>
@@ -762,7 +762,7 @@ a.btn{text-decoration:none}
 <div class="modal-bg" id="mBatch"><div class="modal" style="width:400px">
   <h3>여러 장에 한꺼번에 <button class="icon-btn" data-close data-i="x"></button></h3>
   <p class="hint" style="font-size:13px;margin:0 0 14px">저장해 둔 작업을 정한 범위에 똑같이 적용해요. 바로 저장하지 않고 <b>적용만 해 두고</b>, 그 장을 열어 확인한 뒤 넘기면 저장돼요. 자동 넘김(N)과 함께 쓰면 편해요.</p>
-  <div class="brow"><span>작업</span><div class="mini-seg" id="bSlot"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div></div>
+  <div class="brow"><span>작업</span><div class="mini-seg" id="bSlot"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button><button data-v="6">6</button><button data-v="7">7</button><button data-v="8">8</button><button data-v="9">9</button></div></div>
   <div class="brow"><span>범위</span><input type="number" id="bFrom" min="1"> ~ <input type="number" id="bTo" min="1"> 장</div>
   <p class="hint" id="bInfo" style="margin:0 0 14px;min-height:18px"></p>
   <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" data-close>취소</button><button class="btn btn-green" id="bGo">적용해 두기</button></div>
@@ -1700,10 +1700,11 @@ async function copyOriginal(){if(!S.cur||S.origEdit)return;if(!S.cur.info.orig){
   catch(e){setStatus(i,'error');toast('복사 실패 · '+e.message,'err',6000)}}
 async function restoreBackup(){if(!S.cur)return;const i=S.idx,name=S.cur.name;
   try{await api.post('/api/restore',{name});delete S.memo[name];setStatus(i,'');toast('백업에서 복원했어요');go(i)}catch(e){toast(e.message,'err')}}
-/* 작업 저장 1~4: Shift+숫자로 지금 보정을 저장, 숫자로 적용 · 브라우저에 남아 다시 켜도 그대로 · 원본 수정은 빼고 */
-let SLOTS=[null,null,null,null];try{const v=JSON.parse(localStorage.getItem('scanqc:slots')||'null');if(Array.isArray(v))SLOTS=[0,1,2,3].map(i=>v[i]||null)}catch(e){}
+/* 작업 저장 1~9: Shift+숫자로 지금 보정을 저장, 숫자로 적용 · 브라우저에 남아 다시 켜도 그대로 · 원본 수정은 빼고 */
+const NSLOT=9;let SLOTS=Array(NSLOT).fill(null);try{const v=JSON.parse(localStorage.getItem('scanqc:slots')||'null');if(Array.isArray(v))SLOTS=SLOTS.map((_,i)=>v[i]||null)}catch(e){}
 function saveSlots(){try{localStorage.setItem('scanqc:slots',JSON.stringify(SLOTS))}catch(e){}}
-function renderSlots(){$$('#slots .slot').forEach((b,i)=>{const s=SLOTS[i],d=s?(pinParts(s).join(' · ')||'보정'):'';b.classList.toggle('has',!!s);
+function renderSlots(){let last=-1;SLOTS.forEach((s,i)=>{if(s)last=i});const vis=Math.max(3,Math.min(NSLOT,Math.ceil((last+2)/3)*3));$('#slotAll').hidden=vis>=NSLOT;$('#slotAll').textContent=$('#slots').classList.contains('all')?'접기':'모두 보기';
+  $$('#slots .slot').forEach((b,i)=>{const s=SLOTS[i],d=s?(pinParts(s).join(' · ')||'보정'):'';b.classList.toggle('has',!!s);b.classList.toggle('more',i>=vis);
   b.innerHTML='<b>'+(i+1)+'</b><small>'+(s?escH(d):'비어 있음')+'</small>';
   b.title=s?`${i+1}번 작업: ${d}\n클릭 또는 ${i+1} → 이 장에 적용\nShift+클릭 또는 Shift+${i+1} → 지금 보정으로 바꾸기`:`비어 있음 · 이 장을 고친 뒤 Shift+클릭 또는 Shift+${i+1} 로 저장`})}
 function flashSlot(n){const b=$('#slots .slot[data-n="'+n+'"]');if(!b)return;b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),500)}
@@ -2020,7 +2021,7 @@ $('#trim').oninput=e=>setTrim(e.target.value);$('#trimN').onchange=e=>setTrim(e.
 
 $('#btnPaste').onclick=pastePrev;$('#btnPin').onclick=pinNow;renderSlots();
 $('#slots').onclick=e=>{const b=e.target.closest('.slot');if(!b)return;const n=+b.dataset.n;e.shiftKey?slotSave(n):slotApply(n)};
-$('#btnBatch').onclick=openBatch;$('#planX').onclick=()=>{S.plan=null;syncPlan();toast('예약을 취소했어요')};$('#bGo').onclick=runBatch;
+$('#btnBatch').onclick=openBatch;$('#slotAll').onclick=()=>{$('#slots').classList.toggle('all');renderSlots()};$('#planX').onclick=()=>{S.plan=null;syncPlan();toast('예약을 취소했어요')};$('#bGo').onclick=runBatch;
 $('#bSlot').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled)return;$$('#bSlot button').forEach(x=>x.classList.toggle('on',x===b));bInfo()};
 ['#bFrom','#bTo'].forEach(q=>{$(q).oninput=bInfo;$(q).onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();runBatch()}}});
 $('#tPinAuto').onclick=()=>{if(!S.pinAuto&&!S.pin){if(S.cur&&!isDefault(S.edits))pinNow();else{toast('먼저 한 장을 고친 뒤 [지금 보정 기억]을 누르세요','warn',3000);return}}
@@ -2170,8 +2171,8 @@ document.addEventListener('keydown',e=>{
     case'KeyB':S.lastPaint='brush';setTool('brush');break;
     case'KeyX':$('#btnReset').click();break;
     case'Digit0':case'Numpad0':vO.fit();vH.fit();break;
-    case'Digit1':case'Digit2':case'Digit3':case'Digit4':if(S.origEdit){hit=false;break}if(sh)slotSave(+e.code.slice(5));else slotApply(+e.code.slice(5));break;
-    case'Numpad1':case'Numpad2':case'Numpad3':case'Numpad4':if(S.origEdit){hit=false;break}slotApply(+e.code.slice(6));break;
+    case'Digit1':case'Digit2':case'Digit3':case'Digit4':case'Digit5':case'Digit6':case'Digit7':case'Digit8':case'Digit9':if(S.origEdit){hit=false;break}if(sh)slotSave(+e.code.slice(5));else slotApply(+e.code.slice(5));break;
+    case'Numpad1':case'Numpad2':case'Numpad3':case'Numpad4':case'Numpad5':case'Numpad6':case'Numpad7':case'Numpad8':case'Numpad9':if(S.origEdit){hit=false;break}slotApply(+e.code.slice(6));break;
     case'Tab':if(sh){if(!S.origEdit)setSolo(!S.solo)}else setFocus(!APP.classList.contains('focus'));break;
     case'KeyO':if(S.origEdit)exitOrigEdit(true);else enterOrigEdit();break;
     case'Slash':$('#mHelp').classList.add('show');break;
