@@ -9,6 +9,8 @@
 <meta name="color-scheme" content="dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
+/* 글꼴을 함께 넣음 — 인터넷·설치 글꼴이 없는 PC에서도 같은 모양 (Pretendard, OFL) */
+@font-face{font-family:"Pretendard";src:url("fonts/PretendardVariable.woff2") format("woff2-variations"),url("fonts/PretendardVariable.woff2") format("woff2");font-weight:45 920;font-style:normal;font-display:swap}
 :root{
   --bg:#000;--base:#121212;--card:#181818;--elev:#1f1f1f;--elev2:#282828;--hover:#2a2a2a;--line:#2e2e2e;
   --text:#fff;--sub:#b3b3b3;--mute:#727272;
@@ -309,7 +311,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np-art canvas{width:56px;height:56px;object-fit:cover}
 /* 지금 파일 이름·순번·상태: 두 창 사이 위쪽 가운데 한 줄 (검수하면서 한눈에) */
 .fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:66px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.8);backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
-.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:#8f8f8f;font-size:12.5px;font-weight:700;flex:none}#hO,#hH{font-weight:700;color:#8f8f8f}
+.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:#c4c4c4;font-size:12.5px;font-weight:700;flex:none}#hO,#hH{font-weight:700;color:#c4c4c4}
 .app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:52px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
 .np-txt{min-width:0}
 .np-txt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
