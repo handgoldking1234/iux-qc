@@ -311,7 +311,7 @@ input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-
 .np-art canvas{width:56px;height:56px;object-fit:cover}
 /* 지금 파일 이름·순번·상태: 두 창 사이 위쪽 가운데 한 줄 (검수하면서 한눈에) */
 .fchip{position:absolute;left:calc((100% - var(--tbw,60px))/2);top:66px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;max-width:min(72%,720px);padding:5px 14px;border-radius:999px;background:rgba(18,18,18,.8);backdrop-filter:blur(6px);white-space:nowrap;pointer-events:none}
-.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:#c4c4c4;font-size:12.5px;font-weight:700;flex:none}#hO,#hH{font-weight:700;color:#c4c4c4}
+.fchip[hidden]{display:none}body.orig-edit .fchip{display:none}.fchip b{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}.fchip small{display:flex;align-items:center;gap:6px;color:#c4c4c4;font-size:12.5px;font-weight:700;flex:none}.fchip .np-no,#hO,#hH{font-weight:700;color:#8ab4f8}  /* 순번·해상도: 흰 글자와 구분되는 하늘색 */
 .app.tools-in-ins .fchip{left:50%}@media(max-width:860px){.fchip{left:50%;top:52px;max-width:92%;padding:4px 10px}.fchip b{font-size:12px}}
 .np-txt{min-width:0}
 .np-txt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1538,7 +1538,7 @@ function renderHead(){const f=S.files[S.idx];
   if(!S.cur)$('#hO').textContent='—'}
 function renderPlayer(){const f=S.files[S.idx],n=S.files.length;
   $('#npName').textContent=f?f.name:'파일 없음';$('#fChip').hidden=!f;
-  const st=f?STATUS[f.status||'']:null;$('#npSub').innerHTML=f?`${S.idx+1} / ${n} · <span class="st ${st.c}" style="display:inline-flex;align-items:center;gap:4px">${ic(st.i,12)}${st.t}</span>`:'—';
+  const st=f?STATUS[f.status||'']:null;$('#npSub').innerHTML=f?`<span class="np-no">${S.idx+1} / ${n}</span> · <span class="st ${st.c}" style="display:inline-flex;align-items:center;gap:4px">${ic(st.i,12)}${st.t}</span>`:'—';
   const b=$('#pBar');b.max=Math.max(1,n);setRange(b,S.idx+1);$('#pCur').textContent=n?S.idx+1:0;$('#pTot').textContent=n;
   const art=$('#npArt');if(art&&(S.cur&&S.cur.imgH||S.cur&&S.cur.imgO)){const im=S.cur.imgH||S.cur.imgO;let c=art.querySelector('canvas');
     if(!c){art.innerHTML='';c=document.createElement('canvas');c.width=112;c.height=112;art.appendChild(c)}
